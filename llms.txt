@@ -1,10 +1,18 @@
 # benchmark-tool-errors
 
-> Do agents survive real API failures without duplicating side effects?
+> Deterministic AI benchmark for safe retries, idempotency, and truthful recovery from API failures.
 
 Package: https://www.npmjs.com/package/benchmark-tool-errors
 Repository: https://github.com/pooriaarab/benchmark-tool-errors
 Directory: https://aibenchmarkindex.com/benchmarks/benchmark-tool-errors
+
+## Scope
+
+The package contains 40 seeded tool-use episodes across invoice, email, calendar, and inventory simulators. Faults are rate limits, one-time 500s, committed timeouts, schema drift, partial success, and permanent failure.
+
+## Scoring
+
+Replay weights correct end state at 45%, side-effect safety at 25%, retry discipline at 20%, and truthful reporting at 10%. Duplicate side effects score zero. No LLM judge is used.
 
 ## Exports
 
@@ -12,8 +20,11 @@ The root exports `benchmark`, `run`, and `score`. `benchmark-tool-errors/api` ex
 
 ## Commands
 
-The CLI supports list, show, run, score, card, provenance, index-entry, serve, and mcp. Use the mock provider for offline verification.
+The CLI supports `list`, `show`, `run`, `score`, `card`, `provenance`, `index-entry`, `serve`, and `mcp`. Run `npx benchmark-tool-errors run --provider mock` for an offline evaluation.
 
-## Verification
+## Documents
 
-Run `npm run ci:local`. The report is `artifacts/e2e-report.json`.
+- `data/PROVENANCE.md`: source, licence, reproduction, refresh, and hidden split
+- `docs/fault-catalog.md`: injected faults and required recovery behavior
+- `docs/grading.md`: weights, evidence, and known grader failure modes
+- `artifacts/e2e-report.json`: generated local verification report
