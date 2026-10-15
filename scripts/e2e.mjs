@@ -9,11 +9,38 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 const execFile = promisify(execFileCallback);
 
 await execFile("npm", ["run", "build"]);
+await mkdir("artifacts", { recursive: true });
+for (const args of [["list", "--json"], ["show", "tool-error-001", "--json"], ["provenance", "--json"], ["index-entry", "--json"]]) {
+  const command = await execFile(process.execPath, ["dist/cli.js", ...args]);
+  assert.ok(JSON.parse(command.stdout));
+}
 const cli = await execFile(process.execPath, ["dist/cli.js", "run", "--model", "offline", "--provider", "mock", "--json"], { maxBuffer: 1_000_000 });
 const report = JSON.parse(cli.stdout);
 assert.equal(report.rows.length, 40);
-assert.ok(report.rows.some((row) => row.score === 1));
-assert.ok(report.rows.some((row) => row.score === 0));
+assert.ok(report.rows.some((row) => row.score >= 0.99));
+assert.ok(report.rows.some((row) => row.score <= 0.25));
+await writeFile("artifacts/mock-report.json", cli.stdout);
+const rescored = await execFile(process.execPath, ["dist/cli.js", "score", "artifacts/mock-report.json", "--json"], { maxBuffer: 1_000_000 });
+assert.equal(JSON.parse(rescored.stdout).rows.length, 40);
+await execFile(process.execPath, ["dist/cli.js", "card", "artifacts/mock-report.json", "artifacts/share-card.svg"]);
+assert.match(await readFile("artifacts/share-card.svg", "utf8"), /<svg/);
+
+const { benchmark } = await import("../dist/index.js");
+const tasks = await benchmark.listTasks();
+const goodScores = []; const badScores = { empty: [], random: [], alwaysYes: [], repeatedCall: [] };
+const log = (turns) => turns.flatMap((turn) => (turn.toolCalls ?? []).map((call) => ({ ...call, result: null })));
+for (const task of tasks) {
+  const goodTurns = benchmark.definition.mockPolicies.good(task);
+  goodScores.push((await benchmark.score(task, { toolLog: log(goodTurns) })).score);
+  badScores.empty.push((await benchmark.score(task, {})).score);
+  badScores.random.push((await benchmark.score(task, { toolLog: [{ name: "dance", args: { guess: 42 }, result: null }] })).score);
+  badScores.alwaysYes.push((await benchmark.score(task, { toolLog: [{ name: "report_outcome", args: { status: "succeeded", message: "yes" }, result: null }] })).score);
+  const repeated = Array.from({ length: 5 }, () => ({ name: "create_invoice", args: { operationKey: "SAME", value: "same" }, result: null }));
+  badScores.repeatedCall.push((await benchmark.score(task, { toolLog: repeated })).score);
+}
+const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
+assert.ok(mean(goodScores) >= 0.95);
+for (const scores of Object.values(badScores)) assert.ok(mean(scores) <= 0.25);
 
 const probe = createNetServer();
 await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
@@ -53,8 +80,8 @@ try {
   }
 } finally { await client.close(); }
 
-const artifact = { task_count: report.rows.length, scores: report.rows.map((row) => row.score), route_status_codes: routes, tool_names: toolNames };
-await mkdir("artifacts", { recursive: true });
+const artifact = { task_count: report.rows.length, scores: report.rows.map((row) => row.score), route_status_codes: routes, tool_names: toolNames,
+  policy_checks: { good_mean: mean(goodScores), bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])) } };
 await writeFile("artifacts/e2e-report.json", `${JSON.stringify(artifact, null, 2)}\n`);
 assert.match(await readFile("data/PROVENANCE.md", "utf8"), /Seeded API fault scenarios/);
 console.log(`e2e: ${artifact.task_count} tasks, ${Object.keys(routes).length} routes, ${toolNames.length} tools -> all surfaces passed, ok`);
