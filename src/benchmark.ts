@@ -186,4 +186,5 @@ export const benchmark = defineBenchmark<RecoveryTask>({
     refresh: "Regenerate and review public fixtures for each minor release; rotate the private hidden seed for every evaluation campaign.",
   }],
   gradingMethod: "Deterministic replay scores end state (45%), side-effect safety (25%), bounded and timed retries (20%), and truthful reporting (10%); duplicate side effects score zero.",
+  saturation: "unknown" as unknown as number,
 });
