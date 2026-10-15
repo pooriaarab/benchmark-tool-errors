@@ -1,0 +1,2 @@
+{"id":"starter-1","kind":"episode","prompt":"Call finish_task once, then stop.","expected":"ready","metadata":{"seed":20261015}}
+{"id":"starter-2","kind":"episode","prompt":"Use finish_task to complete this task.","expected":"set","metadata":{"seed":20261016}}

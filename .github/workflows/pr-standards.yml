@@ -1,0 +1,26 @@
+name: pr-standards
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened, labeled, unlabeled]
+jobs:
+  pr-standards:
+    name: PR standards
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: read
+      issues: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the checker
+        run: |
+          mkdir -p /tmp/prs
+          curl --retry 5 --retry-delay 2 --retry-all-errors -fsSL -o /tmp/pr-standards.tar.gz \
+            "https://codeload.github.com/pooriaarab/scripts/tar.gz/refs/tags/pr-standards-v1"
+          tar -xzf /tmp/pr-standards.tar.gz -C /tmp/prs --strip-components=1
+          node /tmp/prs/pr-standards --selfcheck
+      - name: Check pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node /tmp/prs/pr-standards pr --repo "$GITHUB_REPOSITORY" --number "${{ github.event.pull_request.number }}"
