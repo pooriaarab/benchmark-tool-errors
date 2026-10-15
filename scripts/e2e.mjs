@@ -14,6 +14,8 @@ for (const args of [["list", "--json"], ["show", "tool-error-001", "--json"], ["
   const command = await execFile(process.execPath, ["dist/cli.js", ...args]);
   assert.ok(JSON.parse(command.stdout));
 }
+const shortMock = await execFile(process.execPath, ["dist/cli.js", "run", "--provider", "mock", "--json"], { maxBuffer: 1_000_000 });
+assert.equal(JSON.parse(shortMock.stdout).rows.length, 40);
 const cli = await execFile(process.execPath, ["dist/cli.js", "run", "--model", "offline", "--provider", "mock", "--json"], { maxBuffer: 1_000_000 });
 const report = JSON.parse(cli.stdout);
 assert.equal(report.rows.length, 40);

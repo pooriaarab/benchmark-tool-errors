@@ -1,27 +1,84 @@
 {
   "name": "benchmark-tool-errors",
   "version": "0.1.0",
-  "description": "Do agents survive real API failures without duplicating side effects?",
-  "keywords": ["ai-benchmark", "llm-evaluation", "model-evaluation", "evals", "grading", "openrouter", "openai", "mcp", "typescript", "agent-benchmark"],
+  "description": "AI benchmark for safe retries, idempotency, and truthful recovery from API and tool failures.",
+  "keywords": [
+    "ai-benchmark",
+    "llm-evaluation",
+    "model-evaluation",
+    "agent-benchmark",
+    "tool-use",
+    "api-errors",
+    "retries",
+    "idempotency",
+    "fault-injection",
+    "openrouter",
+    "openai",
+    "mcp",
+    "typescript"
+  ],
   "homepage": "https://private-repo-337e.com/benchmarks/benchmark-tool-errors",
   "bugs": "https://github.com/pooriaarab/benchmark-tool-errors/issues",
-  "repository": { "type": "git", "url": "git+https://github.com/pooriaarab/benchmark-tool-errors.git" },
-  "license": "MIT", "author": "Pooria Arab", "type": "module",
-  "main": "./dist/index.js", "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pooriaarab/benchmark-tool-errors.git"
+  },
+  "license": "MIT",
+  "author": "Pooria Arab",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" },
-    "./mcp": { "types": "./dist/mcp.d.ts", "import": "./dist/mcp.js" },
-    "./api": { "types": "./dist/api.d.ts", "import": "./dist/api.js" }
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./mcp": {
+      "types": "./dist/mcp.d.ts",
+      "import": "./dist/mcp.js"
+    },
+    "./api": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js"
+    }
   },
-  "bin": { "benchmark-tool-errors": "./dist/cli.js" },
-  "files": ["dist", "data", "README.md", "AGENTS.md", "llms.txt", "server.json", "LICENSE"],
-  "engines": { "node": ">=20" }, "sideEffects": false,
+  "bin": {
+    "benchmark-tool-errors": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "data",
+    "docs",
+    "README.md",
+    "AGENTS.md",
+    "llms.txt",
+    "server.json",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "sideEffects": false,
   "scripts": {
-    "lint": "oxlint src scripts", "typecheck": "tsc --noEmit", "build": "tsup",
-    "provenance": "node scripts/provenance.mjs", "generate:tasks": "node scripts/gen-tasks.mjs",
-    "e2e": "node scripts/e2e.mjs", "ci:local": "npm run lint && npm run typecheck && npm run build && npm run e2e"
+    "lint": "oxlint src scripts",
+    "typecheck": "tsc --noEmit",
+    "build": "tsup",
+    "provenance": "node scripts/provenance.mjs",
+    "generate:tasks": "node scripts/gen-tasks.mjs",
+    "e2e": "node scripts/e2e.mjs",
+    "ci:local": "npm run lint && npm run typecheck && npm run build && npm run e2e"
   },
-  "dependencies": { "@modelcontextprotocol/sdk": "^1.20.1", "benchmark-core": "^0.1.0" },
-  "devDependencies": { "@types/node": "^24.0.0", "oxlint": "^1.23.0", "tsup": "^8.5.0", "typescript": "^5.9.3" },
-  "publishConfig": { "access": "public" }
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.20.1",
+    "benchmark-core": "^0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "oxlint": "^1.23.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.9.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
