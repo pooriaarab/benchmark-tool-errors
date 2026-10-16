@@ -8,6 +8,7 @@ authors:
 version: "0.2.0"
 date-released: 2026-10-16
 license: MIT
+doi: 10.5281/zenodo.23422369
 repository-code: https://github.com/pooriaarab/benchmark-tool-errors
 url: "https://aibenchmarkindex.com/benchmarks/benchmark-tool-errors"
 abstract: "AI benchmark for safe retries, idempotency, and truthful recovery from API and tool failures."
