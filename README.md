@@ -204,16 +204,17 @@ model ID from that endpoint.
 
 ```bash
 node scripts/gen-tasks.mjs --seed 20261015 --split public
-node scripts/gen-tasks.mjs --split hidden          # writes ignored .hidden/tasks.jsonl
+node scripts/gen-tasks.mjs --split hidden --seed <private>   # writes ignored .hidden/tasks.jsonl
 npx benchmark-tool-errors run --provider mock --tasks .hidden/tasks.jsonl
 ```
 
-The hidden split uses an unpublished default seed, its own `hidden-` id prefix,
-a seeded fault order, and different values, so no hidden prompt or expected
-answer matches a public task. Pass `--seed` to use a private seed and `--out`
-to change the output path. Keep hidden fixtures out of packages and
-repositories; the SDK (`run(adapter, { tasksPath })`), API
-(`createApiHandler({ tasksPath })`), and MCP tools accept the same file.
+The hidden split needs a private seed passed with `--seed` or the
+`BTER_HIDDEN_SEED` environment variable; it is never committed. Hidden tasks
+use their own `hidden-` id prefix, `H`-tagged operation keys, a seeded fault
+order, and different values, so no hidden prompt or expected answer matches a
+public task. Pass `--out` to change the output path. Keep hidden fixtures out
+of packages and repositories; the SDK (`run(adapter, { tasksPath })`), API
+(`createApiHandler({ tasksPath })`), and `mcp --tasks` accept the same file.
 
 The design credits Stripe's [idempotent request
 documentation](https://docs.stripe.com/api/idempotent_requests) and AWS guidance
