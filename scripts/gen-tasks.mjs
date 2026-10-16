@@ -37,6 +37,17 @@ const shuffle = (values) => {
 };
 
 const faults = ["rate_limit", "one_time_500", "timeout_committed", "schema_drift", "partial_success", "permanent_failure"];
+// Each task family draws its write payload field from a small pool. The live
+// name is declared by the write tool for ordinary tasks and revealed only by
+// a SCHEMA_CHANGED error on schema-drift tasks, so a fixed script cannot
+// hard-code it. `value` and `payload` stay in every pool so historical
+// guesses still compile into real (often wrong) calls.
+const fieldPools = {
+  invoicing: ["value", "payload", "amount", "charge", "bill"],
+  email: ["value", "payload", "message", "recipient", "body"],
+  calendar: ["value", "payload", "event", "title", "booking"],
+  inventory: ["value", "payload", "quantity", "stock", "adjustment"],
+};
 const domains = [
   {
     name: "invoicing", keyPrefix: "INV",
@@ -100,9 +111,13 @@ const drafted = [];
 const keyTag = split === "hidden" ? `H${seed % 100000}` : `${seed % 100000}`;
 for (const domain of domains) {
   const schedule = shuffle([...faults, pick(faults), pick(faults), pick(faults), pick(faults)]);
+  const pool = fieldPools[domain.name];
   for (let index = 0; index < 10; index++) {
     const key = `${domain.keyPrefix}-${keyTag}-${index + 1}`;
-    drafted.push({ domain: domain.name, fault: schedule[index], fixture: domain.make(index, key) });
+    const payloadField = pick(pool);
+    // Drifted APIs keep documenting a stale name that differs from the live one.
+    const staleField = schedule[index] === "schema_drift" ? pick(pool.filter((name) => name !== payloadField)) : payloadField;
+    drafted.push({ domain: domain.name, fault: schedule[index], payloadField, staleField, fixture: domain.make(index, key) });
   }
 }
 const ordered = split === "hidden" ? shuffle(drafted) : drafted;
@@ -113,6 +128,7 @@ const tasks = ordered.map((entry, position) => ({
   expected: { outcome: entry.fault === "permanent_failure" ? "failed" : "succeeded", key: entry.fixture.key },
   metadata: {
     domain: entry.domain, fault: entry.fault, operationKey: entry.fixture.key, value: entry.fixture.value,
+    payloadField: entry.payloadField, staleField: entry.staleField,
     retryAfter: entry.fault === "rate_limit" ? 3 + Math.floor(random() * 8) : 0,
     taskSeed: Math.floor(random() * 2_147_483_647), split,
   },

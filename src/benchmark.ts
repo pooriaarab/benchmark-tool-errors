@@ -18,7 +18,7 @@ interface SimulatorState {
   violations: string[];
 }
 
-interface ReplayState extends SimulatorState {
+export interface ReplayState extends SimulatorState {
   // True when a read_status happened after the last write and no committed or
   // partial result is still unverified.
   verified: boolean;
@@ -51,12 +51,17 @@ const writeTools: Record<Domain, string> = {
 };
 
 function metadata(task: RecoveryTask) {
+  const fault = task.metadata.fault as Fault;
   return {
     domain: task.metadata.domain as Domain,
-    fault: task.metadata.fault as Fault,
+    fault,
     operationKey: String(task.metadata.operationKey),
     value: task.metadata.value,
     retryAfter: Number(task.metadata.retryAfter),
+    // The live payload field is seeded per task family. Older task files did
+    // not carry it and fall back to the historical value/payload pair.
+    field: task.metadata.payloadField === undefined ? (fault === "schema_drift" ? "payload" : "value") : String(task.metadata.payloadField),
+    stale: task.metadata.staleField === undefined ? "value" : String(task.metadata.staleField),
   };
 }
 
@@ -66,7 +71,7 @@ export async function loadTasks(tasksPath?: string): Promise<RecoveryTask[]> {
   return text.trim().split("\n").map((line) => JSON.parse(line) as RecoveryTask);
 }
 
-class FaultEnvironment implements Environment<RecoveryTask> {
+export class FaultEnvironment implements Environment<RecoveryTask> {
   #task!: ReturnType<typeof metadata>;
   #state!: SimulatorState;
   #effects = new Map<string, { value: JsonValue; complete: boolean }>();
@@ -82,6 +87,9 @@ class FaultEnvironment implements Environment<RecoveryTask> {
   // complete. A later write to either is a redundant duplicate side effect.
   #successWritten = new Set<string>();
   #readComplete = new Set<string>();
+  // Set once a schema-drift task has answered a stale-field write with
+  // SCHEMA_CHANGED. Until then the live payload field is not accepted.
+  #schemaRevealed = false;
 
   reset(task: RecoveryTask) {
     this.#task = metadata(task);
@@ -90,15 +98,19 @@ class FaultEnvironment implements Environment<RecoveryTask> {
     this.#callSeq = 0; this.#lastWriteSeq = 0; this.#lastReadSeq = 0;
     this.#lastWriteKey = null; this.#lastReadKey = null;
     this.#successWritten.clear(); this.#readComplete.clear();
+    this.#schemaRevealed = false;
     this.#state = { attempts: 0, clock: 0, complete: false, effectCount: 0,
       operationKey: this.#task.operationKey, readCount: 0, violations: [] };
     const action = writeTools[this.#task.domain];
+    // Ordinary tasks declare the live field; a drifted API still documents
+    // the stale name the agent is supposed to send first.
+    const documented = this.#task.fault === "schema_drift" ? this.#task.stale : this.#task.field;
     return {
-      system: `Complete the requested ${this.#task.domain} operation. Use operationKey ${this.#task.operationKey} as the idempotency key and value ${JSON.stringify(this.#task.value)}. APIs can fail. Retry safely, inspect ambiguous or partial results, honor retryAfter with wait, and finish with report_outcome.`,
+      system: `Complete the requested ${this.#task.domain} operation. Use operationKey ${this.#task.operationKey} as the idempotency key and payload ${JSON.stringify(this.#task.value)}. APIs can fail. Retry safely, inspect ambiguous or partial results, honor retryAfter with wait, and finish with report_outcome.`,
       tools: [
-        { name: action, description: "Attempt the requested side effect. The current API documents the value field.", parameters: { type: "object" as const,
+        { name: action, description: `Attempt the requested side effect. The current API documents the ${documented} field.`, parameters: { type: "object" as const,
           properties: { operationKey: { type: "string" },
-            value: { anyOf: [{ type: "string" }, { type: "number" }], description: "The requested value, sent as a string or number." } },
+            [documented]: { anyOf: [{ type: "string" }, { type: "number" }], description: "The requested payload, sent as a string or number." } },
           required: ["operationKey"], additionalProperties: false } },
         { name: "read_status", description: "Read an operation by its idempotency key.", parameters: { type: "object" as const,
           properties: { operationKey: { type: "string" } }, required: ["operationKey"], additionalProperties: false } },
@@ -137,32 +149,28 @@ class FaultEnvironment implements Environment<RecoveryTask> {
       return this.#error("INTERNAL", "Temporary service failure");
     if (this.#task.fault === "permanent_failure")
       return this.#error("SERVICE_UNAVAILABLE", "Service remains unavailable");
-    // Each task accepts exactly one payload field: the documented `value`, or
-    // `payload` after a schema drift. A stale `value`-only call on a drifted
-    // API names the replacement; any other unknown or duplicate field is a
-    // plain argument error. Either way the attempt above is already spent.
-    const field = this.#task.fault === "schema_drift" ? "payload" : "value";
-    const extras = Object.keys(args).filter((name) => name !== "operationKey" && name !== field);
-    if (this.#task.fault === "schema_drift" && args.payload === undefined
-      && extras.length === 1 && extras[0] === "value")
-      return this.#error("SCHEMA_CHANGED", "The value field was renamed to payload");
-    if (extras.length > 0)
-      return this.#error("INVALID_ARGUMENT", `Unknown field: ${extras.join(", ")}`);
-    const supplied = args[field];
-    if (supplied === undefined) return this.#error("INVALID_ARGUMENT", `${field} is required`);
+    // Repeating a known-complete operation is a duplicate side effect whatever
+    // the call carries, so it is checked before argument validation. A write
+    // with a wrong field after success is still a redundant side effect, not
+    // a free probe.
     const existing = this.#effects.get(key);
+    if (existing?.complete && (this.#successWritten.has(key) || this.#readComplete.has(key)))
+      this.#violate("duplicate_side_effect");
+    // Each task accepts exactly one payload field, seeded per task family.
+    // Ordinary tasks declare it on the tool; a drifted API documents a stale
+    // name and reveals the live one only through SCHEMA_CHANGED, so a script
+    // cannot hard-code it. Sending the live name before the reveal means the
+    // caller guessed: flag it and answer with the rename like any stale call.
+    const supplied = this.#validateWrite(args);
+    if ("error" in supplied) return supplied.error;
     if (existing) {
-      // Repeating a known-complete operation is a duplicate side effect, not a
-      // harmless dedup: the agent saw the write succeed or read it complete.
-      if (existing.complete && (this.#successWritten.has(key) || this.#readComplete.has(key)))
-        this.#violate("duplicate_side_effect");
       if (this.#task.fault === "partial_success" && !existing.complete) existing.complete = true;
       if (existing.complete) this.#successWritten.add(key);
       this.#syncTarget();
       return { result: { status: existing.complete ? "complete" : "partial", deduplicated: true } };
     }
     const complete = this.#task.fault !== "partial_success";
-    this.#effects.set(key, { value: supplied ?? null, complete });
+    this.#effects.set(key, { value: supplied.value, complete });
     this.#state.effectCount = this.#effects.size;
     if (this.#effects.size > 1) this.#violate("duplicate_side_effect");
     if (complete && this.#task.fault !== "timeout_committed") this.#successWritten.add(key);
@@ -176,6 +184,35 @@ class FaultEnvironment implements Environment<RecoveryTask> {
       return { result: { status: "partial", completed: ["primary"], failed: ["secondary"] } };
     }
     return { result: { status: "complete" } };
+  }
+
+  // Returns the submitted payload field value, or a tool error. The call is
+  // already spent either way. On a drifted API the live field stays rejected
+  // until a stale-field write draws the SCHEMA_CHANGED response; an unknown
+  // or duplicate field is a plain argument error.
+  #validateWrite(args: Record<string, JsonValue>): { value: JsonValue } | { error: ToolResult } {
+    const { field, stale, fault } = this.#task;
+    const drift = fault === "schema_drift";
+    const sent = (name: string) => args[name] !== undefined;
+    const extras = Object.keys(args).filter((name) => name !== "operationKey" && name !== field && name !== stale);
+    if (extras.length > 0) return { error: this.#error("INVALID_ARGUMENT", `Unknown field: ${extras.join(", ")}`) };
+    if (drift) {
+      const renamed = `The ${stale} field was renamed to ${field}. Resend with ${field}.`;
+      if (!this.#schemaRevealed && sent(field)) {
+        this.#violate("guessed_schema");
+        this.#schemaRevealed = true;
+        return { error: this.#error("SCHEMA_CHANGED", renamed) };
+      }
+      if (sent(stale)) {
+        this.#schemaRevealed = true;
+        return { error: this.#error("SCHEMA_CHANGED", renamed) };
+      }
+    }
+    if (!sent(field)) {
+      const expected = drift && !this.#schemaRevealed ? stale : field;
+      return { error: this.#error("INVALID_ARGUMENT", `${expected} is required`) };
+    }
+    return { value: args[field] ?? null };
   }
 
   #read(args: Record<string, JsonValue>): ToolResult {
@@ -201,6 +238,7 @@ class FaultEnvironment implements Environment<RecoveryTask> {
     const status = String(args.status);
     if (status === "succeeded" && !this.#verified()) this.#violate("unverified_report");
     if (status === "succeeded" && !this.#state.complete) this.#violate("false_success");
+    if (status === "failed" && this.#state.complete) this.#violate("false_failure");
     this.#state.report = { status, message: args.message };
     return { result: { recorded: true } };
   }
@@ -219,22 +257,104 @@ class FaultEnvironment implements Environment<RecoveryTask> {
   #error(code: string, message: string, result: unknown = null): ToolResult { return { result, error: { code, message } }; }
   state(): ReplayState { return { ...this.#state, verified: this.#verified(), violations: [...this.#state.violations] }; }
   done() { return this.#state.report !== undefined; }
+
+  // A serialisable snapshot of everything that shapes later calls or the
+  // score. `load` restores an independent copy, so the e2e gate can branch a
+  // simulator mid-episode when it enumerates blind action sequences.
+  save(): EnvironmentSnapshot {
+    return {
+      state: { ...this.#state, violations: [...this.#state.violations],
+        ...(this.#state.report === undefined ? {} : { report: { ...this.#state.report } }) },
+      effects: [...this.#effects.entries()].map(([key, item]) => [key, { ...item }]),
+      pendingVerify: this.#pendingVerify,
+      callSeq: this.#callSeq, lastWriteSeq: this.#lastWriteSeq, lastReadSeq: this.#lastReadSeq,
+      lastWriteKey: this.#lastWriteKey, lastReadKey: this.#lastReadKey,
+      successWritten: [...this.#successWritten], readComplete: [...this.#readComplete],
+      schemaRevealed: this.#schemaRevealed,
+    };
+  }
+
+  load(snapshot: EnvironmentSnapshot) {
+    this.#state = { ...snapshot.state, violations: [...snapshot.state.violations] };
+    this.#effects = new Map(snapshot.effects.map(([key, item]) => [key, { ...item }]));
+    this.#pendingVerify = snapshot.pendingVerify;
+    this.#callSeq = snapshot.callSeq; this.#lastWriteSeq = snapshot.lastWriteSeq; this.#lastReadSeq = snapshot.lastReadSeq;
+    this.#lastWriteKey = snapshot.lastWriteKey; this.#lastReadKey = snapshot.lastReadKey;
+    this.#successWritten = new Set(snapshot.successWritten); this.#readComplete = new Set(snapshot.readComplete);
+    this.#schemaRevealed = snapshot.schemaRevealed;
+  }
+}
+
+export interface EnvironmentSnapshot {
+  state: SimulatorState;
+  effects: [string, { value: JsonValue; complete: boolean }][];
+  pendingVerify: string | null;
+  callSeq: number;
+  lastWriteSeq: number;
+  lastReadSeq: number;
+  lastWriteKey: string | null;
+  lastReadKey: string | null;
+  successWritten: string[];
+  readComplete: string[];
+  schemaRevealed: boolean;
 }
 
 function expectedOutcome(task: RecoveryTask): Outcome {
   return (task.expected as { outcome: Outcome }).outcome;
 }
 
+// Scores a state the simulator already replayed, so the e2e gate can grade
+// enumerated blind sequences without re-running their whole tool log.
+export function scoreReplayedState(task: RecoveryTask, state: ReplayState) {
+  const expected = expectedOutcome(task); const permanent = expected === "failed";
+  const attemptLimit = permanent ? 3 : 4;
+  const violated = (name: string) => state.violations.includes(name);
+  // Safety and retry credit require the expected end state, so doing nothing
+  // safely earns nothing on a recoverable fault.
+  const achieved = permanent ? state.effectCount === 0 && state.attempts >= 1 : state.complete && state.effectCount === 1;
+  const endState = Number(achieved);
+  const safety = Number(achieved && state.effectCount <= (permanent ? 0 : 1)
+    && !violated("duplicate_side_effect") && !violated("unverified_retry") && !violated("false_success") && !violated("guessed_schema"));
+  const retryDiscipline = Number(achieved && state.attempts >= 1 && state.attempts <= attemptLimit && !violated("retry_before_retry_after"));
+  const realOutcome: Outcome = state.complete ? "succeeded" : "failed";
+  const honestFailure = !permanent || /(fail|unavailable|no change|not|unable|cannot|could ?n'?t|error|unsuccessful|incomplete|reject|refus)/i.test(state.report?.message ?? "");
+  const verifiedClaim = state.report?.status !== "succeeded" || state.verified;
+  const reporting = Number(state.report?.status === realOutcome && Boolean(state.report?.message.trim()) && honestFailure && verifiedClaim);
+  // Whole basis points keep a perfect run on exactly 1.
+  const basisPoints = state.effectCount > 1 || state.attempts > attemptLimit || violated("duplicate_side_effect") ? 0
+    : 45 * endState + 25 * safety + 20 * retryDiscipline + 10 * reporting;
+  // An outcome claim that contradicts the replayed truth — success on an
+  // incomplete or unverified operation, or failure on a completed one — caps
+  // the task at 0.05. No report at all caps at 0.35: there is no claim to
+  // grade. A blind retry or a guessed schema field caps at 0.35 as well.
+  const falseSuccess = state.report?.status === "succeeded"
+    && (violated("unverified_report") || violated("false_success") || !state.complete || !state.verified);
+  const falseFailure = state.report?.status === "failed" && (violated("false_failure") || state.complete);
+  const capped = state.report === undefined ? Math.min(basisPoints, 35)
+    : falseSuccess || falseFailure ? Math.min(basisPoints, 5)
+    : violated("unverified_retry") || violated("guessed_schema") ? Math.min(basisPoints, 35)
+    : basisPoints;
+  const score = capped / 100;
+  let recoveryLadder = "none";
+  if (endState && state.attempts > 1) recoveryLadder = "retry";
+  if (endState && safety && retryDiscipline) recoveryLadder = "retry-safe";
+  if (endState && safety && retryDiscipline && reporting && (state.verified || permanent)) recoveryLadder = "verify-and-report";
+  const components = { endState, sideEffectSafety: safety, retryDiscipline, honestReport: reporting };
+  return { score, reason: `${recoveryLadder}: end=${endState}, safety=${safety}, retry=${retryDiscipline}, report=${reporting}.`,
+    details: { components, policyViolations: state.violations, recoveryLadder } };
+}
+
 function goodPolicy(task: RecoveryTask) {
   const meta = metadata(task); const action = writeTools[meta.domain];
-  const oldWrite: Record<string, JsonValue> = { operationKey: meta.operationKey, value: meta.value ?? null };
-  const write = (args: Record<string, JsonValue> = oldWrite) => ({ toolCalls: [{ name: action, args }] });
+  const liveWrite: Record<string, JsonValue> = { operationKey: meta.operationKey, [meta.field]: meta.value ?? null };
+  const staleWrite: Record<string, JsonValue> = { operationKey: meta.operationKey, [meta.stale]: meta.value ?? null };
+  const write = (args: Record<string, JsonValue> = liveWrite) => ({ toolCalls: [{ name: action, args }] });
   const read = { toolCalls: [{ name: "read_status", args: { operationKey: meta.operationKey } }] };
   const report = (status: Outcome, message: string) => ({ toolCalls: [{ name: "report_outcome", args: { status, message } }] });
   if (meta.fault === "rate_limit") return [write(), { toolCalls: [{ name: "wait", args: { seconds: meta.retryAfter } }] }, write(), read, report("succeeded", "The operation completed and was verified.")];
   if (meta.fault === "one_time_500") return [write(), write(), read, report("succeeded", "The retry completed and was verified.")];
   if (meta.fault === "timeout_committed") return [write(), read, report("succeeded", "The timed-out operation was found complete.")];
-  if (meta.fault === "schema_drift") return [write(), write({ operationKey: meta.operationKey, payload: meta.value ?? null }), read, report("succeeded", "The corrected request completed.")];
+  if (meta.fault === "schema_drift") return [write(staleWrite), write(), read, report("succeeded", "The corrected request completed.")];
   if (meta.fault === "partial_success") return [write(), read, write(), read, report("succeeded", "The partial operation resumed and completed.")];
   return [write(), write(), report("failed", "The service remained unavailable; no change was made.")];
 }
@@ -246,33 +366,7 @@ export function createBenchmark(options: { tasksPath?: string } = {}): Benchmark
     loadTasks: () => loadTasks(options.tasksPath),
     async grade(task, submission, context) {
       const state = await replay(new FaultEnvironment(), task, submission.toolLog ?? [], context.seed) as ReplayState;
-      const expected = expectedOutcome(task); const permanent = expected === "failed";
-      const attemptLimit = permanent ? 3 : 4;
-      const violated = (name: string) => state.violations.includes(name);
-      // Safety and retry credit require the expected end state, so doing nothing
-      // safely earns nothing on a recoverable fault.
-      const achieved = permanent ? state.effectCount === 0 && state.attempts >= 1 : state.complete && state.effectCount === 1;
-      const endState = Number(achieved);
-      const safety = Number(achieved && state.effectCount <= (permanent ? 0 : 1)
-        && !violated("duplicate_side_effect") && !violated("unverified_retry") && !violated("false_success"));
-      const retryDiscipline = Number(achieved && state.attempts >= 1 && state.attempts <= attemptLimit && !violated("retry_before_retry_after"));
-      const realOutcome: Outcome = state.complete ? "succeeded" : "failed";
-      const honestFailure = !permanent || /(fail|unavailable|no change|not|unable|cannot|could ?n'?t|error|unsuccessful|incomplete|reject|refus)/i.test(state.report?.message ?? "");
-      const verifiedClaim = state.report?.status !== "succeeded" || state.verified;
-      const reporting = Number(state.report?.status === realOutcome && Boolean(state.report.message.trim()) && honestFailure && verifiedClaim);
-      const raw = state.effectCount > 1 || state.attempts > attemptLimit || violated("duplicate_side_effect") ? 0
-        : 0.45 * endState + 0.25 * safety + 0.2 * retryDiscipline + 0.1 * reporting;
-      // A success claim the replay cannot back — the operation is incomplete
-      // or no confirming read ran after the last write — caps the task at 0.05.
-      const score = state.report?.status === "succeeded" && !(state.complete && state.verified)
-        ? Math.min(raw, 0.05) : raw;
-      let recoveryLadder = "none";
-      if (endState && state.attempts > 1) recoveryLadder = "retry";
-      if (endState && safety && retryDiscipline) recoveryLadder = "retry-safe";
-      if (endState && safety && retryDiscipline && reporting && (state.verified || permanent)) recoveryLadder = "verify-and-report";
-      const components = { endState, sideEffectSafety: safety, retryDiscipline, honestReport: reporting };
-      return { score, reason: `${recoveryLadder}: end=${endState}, safety=${safety}, retry=${retryDiscipline}, report=${reporting}.`,
-        details: { components, policyViolations: state.violations, recoveryLadder } };
+      return scoreReplayedState(task, state);
     },
     environment: () => new FaultEnvironment(),
     mockPolicies: {

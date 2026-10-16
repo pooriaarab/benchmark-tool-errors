@@ -30,7 +30,7 @@ assert.equal(JSON.parse(rescored.stdout).rows.length, 40);
 await execFile(process.execPath, ["dist/cli.js", "card", "artifacts/mock-report.json", "artifacts/share-card.svg"]);
 assert.match(await readFile("artifacts/share-card.svg", "utf8"), /<svg/);
 
-const { benchmark, createBenchmark } = await import("../dist/index.js");
+const { benchmark, createBenchmark, FaultEnvironment, scoreReplayedState } = await import("../dist/index.js");
 const tasks = await benchmark.listTasks();
 const writeTools = { invoicing: "create_invoice", email: "send_email", calendar: "create_event", inventory: "adjust_inventory" };
 const goodScores = [];
@@ -88,9 +88,9 @@ for (const task of tasks) {
   ]) })).score);
 }
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
-assert.ok(mean(goodScores) >= 0.999, `good mean ${mean(goodScores)} below 0.999`);
+assert.ok(goodScores.every((score) => score === 1), `reference policy scored ${Math.min(...goodScores)} below 1`);
 for (const [name, scores] of Object.entries(honestScores))
-  assert.ok(mean(scores) >= 0.99, `honest ${name} mean ${mean(scores)} below 0.99`);
+  assert.ok(scores.every((score) => score === 1), `honest ${name} scored ${Math.min(...scores)} below 1`);
 for (const [name, scores] of Object.entries(badScores)) {
   const cap = ["blindScript", "contextBlind", "claimWithoutRead", "bogusRead"].includes(name) ? 0.35 : 0.25;
   assert.ok(mean(scores) <= cap, `${name} mean ${mean(scores)} above cap ${cap}`);
@@ -114,16 +114,67 @@ assert.equal((await hiddenBenchmark.listTasks()).length, 40);
 for (let index = 0; index < hiddenTasks.length; index++) {
   const hidden = hiddenTasks[index];
   const goodScore = (await hiddenBenchmark.score(hidden, { toolLog: log(benchmark.definition.mockPolicies.good(hidden)) })).score;
-  assert.ok(goodScore >= 0.99, `good policy scored ${goodScore} on ${hidden.id}`);
+  assert.ok(goodScore === 1, `good policy scored ${goodScore} on ${hidden.id}`);
   const reference = tasks[index % tasks.length];
   const referenceScore = (await hiddenBenchmark.score(hidden, { toolLog: log(benchmark.definition.mockPolicies.good(reference)) })).score;
-  assert.ok(referenceScore < 1, `public reference trace scored ${referenceScore} on ${hidden.id}`);
+  // A permanent-failure trace honestly reports failure whatever key it used,
+  // so it can transfer legitimately; every other fault needs this task's own
+  // key and field names, which a public trace cannot know.
+  if (hidden.metadata.fault !== "permanent_failure")
+    assert.ok(referenceScore < 1, `public reference trace scored ${referenceScore} on ${hidden.id}`);
 }
 const hiddenCli = await execFile(process.execPath, ["dist/cli.js", "run", "--provider", "mock", "--tasks", "artifacts/hidden-tasks.jsonl", "--json"], { maxBuffer: 1_000_000 });
 const hiddenReport = JSON.parse(hiddenCli.stdout);
 assert.equal(hiddenReport.rows.length, 40);
 assert.ok(hiddenReport.rows.every((row) => row.taskId.startsWith("hidden-")));
 assert.ok(hiddenReport.breakdown?.byFault);
+
+// Blind-script sweep: every fixed sequence of up to eight steps built from
+// {write value, write payload, wait 10, read, report succeeded, report failed}
+// is replayed against every task. A report ends the episode, so it only ever
+// appears last; calls after it can only add violations, so report-terminal
+// sequences cover the maximum. A subtree that can never score again — more
+// than four attempts, more than one side effect, or a recorded duplicate —
+// is skipped whole. Each sequence's mean over the task mix must stay under
+// 0.35.
+const blindSweep = async (taskSet) => {
+  const totals = new Map(); const env = new FaultEnvironment();
+  const names = ["write value", "write payload", "wait 10", "read", "report succeeded", "report failed"];
+  for (const task of taskSet) {
+    const action = writeTools[task.metadata.domain]; const key = task.metadata.operationKey;
+    const steps = [
+      [action, { operationKey: key, value: task.metadata.value ?? null }],
+      [action, { operationKey: key, payload: task.metadata.value ?? null }],
+      ["wait", { seconds: 10 }],
+      ["read_status", { operationKey: key }],
+      ["report_outcome", { status: "succeeded", message: "Done." }],
+      ["report_outcome", { status: "failed", message: "It failed." }],
+    ];
+    await env.reset(task, 1);
+    const walk = (depth, code) => {
+      const state = env.state();
+      totals.set(code, (totals.get(code) ?? 0) + scoreReplayedState(task, state).score);
+      if (depth === 8 || env.done() || state.attempts > 4 || state.effectCount > 1
+        || state.violations.includes("duplicate_side_effect")) return;
+      const snapshot = env.save();
+      for (let digit = 0; digit < 6; digit++) {
+        env.callTool(steps[digit][0], steps[digit][1]);
+        walk(depth + 1, code * 6 + digit + 1);
+        env.load(snapshot);
+      }
+    };
+    walk(0, 0);
+  }
+  let worst = 0; let worstCode = 0;
+  for (const [code, sum] of totals) if (sum / taskSet.length > worst) { worst = sum / taskSet.length; worstCode = code; }
+  const digits = []; for (let code = worstCode; code > 0; code = Math.floor((code - 1) / 6)) digits.unshift((code - 1) % 6);
+  return { worst, script: digits.map((digit) => names[digit]).join(" -> ") || "(empty)" };
+};
+const publicBlind = await blindSweep(tasks);
+assert.ok(publicBlind.worst <= 0.35, `blind script "${publicBlind.script}" scored ${publicBlind.worst} on the public mix`);
+const hiddenBlind = await blindSweep(hiddenTasks);
+assert.ok(hiddenBlind.worst <= 0.35, `blind script "${hiddenBlind.script}" scored ${hiddenBlind.worst} on the hidden mix`);
+console.log(`e2e: max blind-script mean ${publicBlind.worst.toFixed(3)} public (${publicBlind.script}), ${hiddenBlind.worst.toFixed(3)} hidden (${hiddenBlind.script})`);
 
 const probe = createNetServer();
 await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
@@ -155,12 +206,13 @@ try {
   const calls = [
     ["list_tasks", {}], ["get_task", { taskId: "tool-error-001" }],
     ["score_answer", { taskId: "tool-error-001", submission: report.rows[0].submission }],
-    ["get_provenance", {}], ["run_benchmark", { model: "offline" }],
+    ["get_provenance", {}], ["run_benchmark", { model: "offline", provider: "mock" }],
   ];
   for (const [name, args] of calls) {
     const result = await client.callTool({ name, arguments: args });
-    if (name === "run_benchmark") assert.equal(result.isError, true); else assert.notEqual(result.isError, true);
+    assert.notEqual(result.isError, true, `${name} failed: ${result.content[0].text}`);
     if (name === "score_answer") assert.ok(JSON.parse(result.content[0].text).details);
+    if (name === "run_benchmark") assert.ok(JSON.parse(result.content[0].text).breakdown?.byFault);
   }
 } finally { await client.close(); }
 
@@ -177,7 +229,8 @@ try {
 
 const artifact = { task_count: report.rows.length, scores: report.rows.map((row) => row.score), route_status_codes: routes, tool_names: toolNames,
   policy_checks: { good_mean: mean(goodScores), honest_means: Object.fromEntries(Object.entries(honestScores).map(([name, scores]) => [name, mean(scores)])),
-    bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])) } };
+    bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])),
+    blind_max: { public: { mean: publicBlind.worst, script: publicBlind.script }, hidden: { mean: hiddenBlind.worst, script: hiddenBlind.script } } } };
 await writeFile("artifacts/e2e-report.json", `${JSON.stringify(artifact, null, 2)}\n`);
 assert.match(await readFile("data/PROVENANCE.md", "utf8"), /Seeded API fault scenarios/);
 console.log(`e2e: ${artifact.task_count} tasks, ${Object.keys(routes).length} routes, ${toolNames.length} tools -> all surfaces passed, ok`);
