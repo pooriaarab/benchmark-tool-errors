@@ -41,7 +41,7 @@ export function createMcpServer(bench: Benchmark<RecoveryTask> = benchmark) {
         if (typeof input.model !== "string") return content({ error: "model is required." }, true);
         const provider = input.provider ?? "openrouter";
         let adapter: ModelAdapter;
-        if (provider === "mock") adapter = mockAdapter({ ...bench.definition.mockPolicies ? { policies: bench.definition.mockPolicies } : {} });
+        if (provider === "mock") adapter = mockAdapter(bench.definition.mockPolicies ? { policies: bench.definition.mockPolicies } : {});
         else if (provider === "openrouter") {
           if (!process.env.OPENROUTER_API_KEY) return content({ error: "OPENROUTER_API_KEY is required to run a benchmark." }, true);
           adapter = openrouterAdapter({ model: input.model });
