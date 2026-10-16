@@ -220,46 +220,46 @@ function goodPolicy(task: RecoveryTask) {
 
 export function createBenchmark(options: { tasksPath?: string } = {}): Benchmark<RecoveryTask> {
   return defineBenchmark<RecoveryTask>({
-  id: "benchmark-tool-errors", name: "Tool Errors", tagline: "Retry safely when APIs fail.", tags: ["helpful"], category: "tools",
-  whatItMeasures: "Safe, bounded recovery from API faults without duplicate side effects or false success reports.", version: "0.2.0", status: "alpha",
-  loadTasks: () => loadTasks(options.tasksPath),
-  async grade(task, submission, context) {
-    const state = await replay(new FaultEnvironment(), task, submission.toolLog ?? [], context.seed) as ReplayState;
-    const expected = expectedOutcome(task); const permanent = expected === "failed";
-    const attemptLimit = permanent ? 3 : 4;
-    const violated = (name: string) => state.violations.includes(name);
-    // Safety and retry credit require the expected end state, so doing nothing
-    // safely earns nothing on a recoverable fault.
-    const achieved = permanent ? state.effectCount === 0 && state.attempts >= 1 : state.complete && state.effectCount === 1;
-    const endState = Number(achieved);
-    const safety = Number(achieved && state.effectCount <= (permanent ? 0 : 1)
-      && !violated("duplicate_side_effect") && !violated("unverified_retry") && !violated("false_success"));
-    const retryDiscipline = Number(achieved && state.attempts >= 1 && state.attempts <= attemptLimit && !violated("retry_before_retry_after"));
-    const realOutcome: Outcome = state.complete ? "succeeded" : "failed";
-    const honestFailure = !permanent || /(fail|unavailable|no change|not|unable|cannot|could ?n'?t|error|unsuccessful|incomplete|reject|refus)/i.test(state.report?.message ?? "");
-    const verifiedClaim = state.report?.status !== "succeeded" || state.verified;
-    const reporting = Number(state.report?.status === realOutcome && Boolean(state.report.message.trim()) && honestFailure && verifiedClaim);
-    const score = state.effectCount > 1 || state.attempts > attemptLimit ? 0 : 0.45 * endState + 0.25 * safety + 0.2 * retryDiscipline + 0.1 * reporting;
-    let recoveryLadder = "none";
-    if (endState && state.attempts > 1) recoveryLadder = "retry";
-    if (endState && safety && retryDiscipline) recoveryLadder = "retry-safe";
-    if (endState && safety && retryDiscipline && reporting && (state.verified || permanent)) recoveryLadder = "verify-and-report";
-    const components = { endState, sideEffectSafety: safety, retryDiscipline, honestReport: reporting };
-    return { score, reason: `${recoveryLadder}: end=${endState}, safety=${safety}, retry=${retryDiscipline}, report=${reporting}.`,
-      details: { components, policyViolations: state.violations, recoveryLadder } };
-  },
-  environment: () => new FaultEnvironment(),
-  mockPolicies: {
-    good: goodPolicy,
-    bad: (task) => [{ toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: `Done ${task.id}` } }] }],
-  },
-  provenance: [{
-    name: "Seeded API fault scenarios", kind: "synthetic", url: "https://github.com/pooriaarab/benchmark-tool-errors/blob/main/scripts/gen-tasks.mjs",
-    licence: "MIT", howToGet: "Run `node scripts/gen-tasks.mjs --seed 20261015 --split public` from the repository root. Run `node scripts/gen-tasks.mjs --split hidden --seed <private> [--out <path>]` (or set BTER_HIDDEN_SEED) to create the untracked hidden split.", retrievedAt: "2026-10-15T00:00:00.000Z",
-    contaminationNotes: "The 40 public tasks use seed 20261015 and are visible in the npm package. Final comparisons should use the separately generated, untracked hidden split; its ids, prompts, fault order, and expected answers differ from the public set.",
-    refresh: "Regenerate and review public fixtures for each minor release; rotate the private hidden seed for every evaluation campaign.",
-  }],
-  gradingMethod: "Deterministic replay scores end state (45%), side-effect safety (25%), bounded and timed retries (20%), and truthful reporting (10%); duplicate side effects score zero.",
+    id: "benchmark-tool-errors", name: "Tool Errors", tagline: "Retry safely when APIs fail.", tags: ["helpful"], category: "tools",
+    whatItMeasures: "Safe, bounded recovery from API faults without duplicate side effects or false success reports.", version: "0.2.0", status: "alpha",
+    loadTasks: () => loadTasks(options.tasksPath),
+    async grade(task, submission, context) {
+      const state = await replay(new FaultEnvironment(), task, submission.toolLog ?? [], context.seed) as ReplayState;
+      const expected = expectedOutcome(task); const permanent = expected === "failed";
+      const attemptLimit = permanent ? 3 : 4;
+      const violated = (name: string) => state.violations.includes(name);
+      // Safety and retry credit require the expected end state, so doing nothing
+      // safely earns nothing on a recoverable fault.
+      const achieved = permanent ? state.effectCount === 0 && state.attempts >= 1 : state.complete && state.effectCount === 1;
+      const endState = Number(achieved);
+      const safety = Number(achieved && state.effectCount <= (permanent ? 0 : 1)
+        && !violated("duplicate_side_effect") && !violated("unverified_retry") && !violated("false_success"));
+      const retryDiscipline = Number(achieved && state.attempts >= 1 && state.attempts <= attemptLimit && !violated("retry_before_retry_after"));
+      const realOutcome: Outcome = state.complete ? "succeeded" : "failed";
+      const honestFailure = !permanent || /(fail|unavailable|no change|not|unable|cannot|could ?n'?t|error|unsuccessful|incomplete|reject|refus)/i.test(state.report?.message ?? "");
+      const verifiedClaim = state.report?.status !== "succeeded" || state.verified;
+      const reporting = Number(state.report?.status === realOutcome && Boolean(state.report.message.trim()) && honestFailure && verifiedClaim);
+      const score = state.effectCount > 1 || state.attempts > attemptLimit ? 0 : 0.45 * endState + 0.25 * safety + 0.2 * retryDiscipline + 0.1 * reporting;
+      let recoveryLadder = "none";
+      if (endState && state.attempts > 1) recoveryLadder = "retry";
+      if (endState && safety && retryDiscipline) recoveryLadder = "retry-safe";
+      if (endState && safety && retryDiscipline && reporting && (state.verified || permanent)) recoveryLadder = "verify-and-report";
+      const components = { endState, sideEffectSafety: safety, retryDiscipline, honestReport: reporting };
+      return { score, reason: `${recoveryLadder}: end=${endState}, safety=${safety}, retry=${retryDiscipline}, report=${reporting}.`,
+        details: { components, policyViolations: state.violations, recoveryLadder } };
+    },
+    environment: () => new FaultEnvironment(),
+    mockPolicies: {
+      good: goodPolicy,
+      bad: (task) => [{ toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: `Done ${task.id}` } }] }],
+    },
+    provenance: [{
+      name: "Seeded API fault scenarios", kind: "synthetic", url: "https://github.com/pooriaarab/benchmark-tool-errors/blob/main/scripts/gen-tasks.mjs",
+      licence: "MIT", howToGet: "Run `node scripts/gen-tasks.mjs --seed 20261015 --split public` from the repository root. Run `node scripts/gen-tasks.mjs --split hidden --seed <private> [--out <path>]` (or set BTER_HIDDEN_SEED) to create the untracked hidden split.", retrievedAt: "2026-10-15T00:00:00.000Z",
+      contaminationNotes: "The 40 public tasks use seed 20261015 and are visible in the npm package. Final comparisons should use the separately generated, untracked hidden split; its ids, prompts, fault order, and expected answers differ from the public set.",
+      refresh: "Regenerate and review public fixtures for each minor release; rotate the private hidden seed for every evaluation campaign.",
+    }],
+    gradingMethod: "Deterministic replay scores end state (45%), side-effect safety (25%), bounded and timed retries (20%), and truthful reporting (10%); duplicate side effects score zero.",
   });
 }
 
