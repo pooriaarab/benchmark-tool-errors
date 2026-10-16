@@ -62,8 +62,8 @@ for (const [name, scores] of Object.entries(badScores)) {
   assert.ok(mean(scores) <= cap, `${name} mean ${mean(scores)} above cap ${cap}`);
 }
 
-// Hidden split: unpublished seed, own id prefix, no shared prompts or answers.
-await execFile(process.execPath, ["scripts/gen-tasks.mjs", "--split", "hidden", "--out", "artifacts/hidden-tasks.jsonl"]);
+// Hidden split: own id prefix, no shared prompts or answers. The seed is a throwaway test seed, not a private one.
+await execFile(process.execPath, ["scripts/gen-tasks.mjs", "--split", "hidden", "--seed", "4242", "--out", "artifacts/hidden-tasks.jsonl"]);
 const hiddenTasks = (await readFile("artifacts/hidden-tasks.jsonl", "utf8")).trim().split("\n").map((line) => JSON.parse(line));
 assert.equal(hiddenTasks.length, tasks.length);
 const publicIds = new Set(tasks.map((task) => task.id));

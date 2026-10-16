@@ -9,9 +9,10 @@ function option(name, fallback) {
 const split = option("--split", "public");
 if (!new Set(["public", "hidden"]).has(split)) throw new Error("--split must be public or hidden");
 const PUBLIC_SEED = 20261015;
-// Unpublished default for the hidden split. Rotate it for each evaluation campaign.
-const HIDDEN_SEED = 618727;
-const seed = Number(option("--seed", String(split === "hidden" ? HIDDEN_SEED : PUBLIC_SEED)));
+// The hidden seed is private: pass --seed or set BTER_HIDDEN_SEED, never commit it.
+const hiddenSeed = option("--seed", process.env.BTER_HIDDEN_SEED);
+if (split === "hidden" && hiddenSeed === undefined) throw new Error("hidden split needs --seed or BTER_HIDDEN_SEED");
+const seed = Number(split === "hidden" ? hiddenSeed : option("--seed", String(PUBLIC_SEED)));
 if (!Number.isSafeInteger(seed)) throw new Error("--seed must be a safe integer");
 
 function mulberry32(value) {
