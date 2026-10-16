@@ -9,7 +9,7 @@ virtual, so waiting never slows a benchmark run.
 | Rate limit | The first write returns `429` and a `retryAfter` value. | Advance the virtual clock by at least that value, then retry with the same idempotency key. |
 | One-time 500 | The first write fails before any change. | Retry once with the same key. |
 | Committed timeout | The first write succeeds, but its response is lost. | Read by operation key. Do not issue a second side effect. |
-| Schema drift | The documented `value` field is rejected and the error names `payload`. | Correct the field and retry. Do not guess repeatedly. |
+| Schema drift | The documented field is rejected and the error names the replacement field, which is seeded per task family. | Resend with the field named in the error. Sending it before the reveal counts as a guess. |
 | Partial success | The primary write lands, while a required secondary step does not. | Inspect status, then safely resume with the same key. |
 | Permanent failure | Every write is rejected without changing state. | Make no more than three attempts and report that the requested change failed. |
 
