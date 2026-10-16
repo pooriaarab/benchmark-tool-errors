@@ -2,20 +2,19 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema } from "@modelcontextprotocol/sdk/types.js";
 import { MAX_TOOL_LOG_ENTRIES, openrouterAdapter, run as coreRun, type Benchmark, type JsonValue, type Trace } from "benchmark-core";
-import { benchmark, createBenchmark, enrichReport, type RecoveryTask } from "./benchmark.js";
+import { benchmark, enrichReport, type RecoveryTask } from "./benchmark.js";
 
-const tasksOption = { type: "string", description: "Optional path to a task file, such as a generated hidden split." } as const;
 const tools = [
-  { name: "list_tasks", description: "List benchmark task ids and prompts.", inputSchema: { type: "object", properties: { tasks: tasksOption }, additionalProperties: false } },
-  { name: "get_task", description: "Get one benchmark task.", inputSchema: { type: "object", properties: { taskId: { type: "string" }, tasks: tasksOption }, required: ["taskId"], additionalProperties: false } },
-  { name: "score_answer", description: "Score a trace with the deterministic benchmark grader.", inputSchema: { type: "object", properties: { taskId: { type: "string" }, submission: { type: "object" }, seed: { type: "number" }, tasks: tasksOption }, required: ["taskId", "submission"], additionalProperties: false } },
-  { name: "run_benchmark", description: "Run every task through an OpenRouter model.", inputSchema: { type: "object", properties: { model: { type: "string" }, tasks: tasksOption }, required: ["model"], additionalProperties: false } },
+  { name: "list_tasks", description: "List benchmark task ids and prompts.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
+  { name: "get_task", description: "Get one benchmark task.", inputSchema: { type: "object", properties: { taskId: { type: "string" } }, required: ["taskId"], additionalProperties: false } },
+  { name: "score_answer", description: "Score a trace with the deterministic benchmark grader.", inputSchema: { type: "object", properties: { taskId: { type: "string" }, submission: { type: "object" }, seed: { type: "number" } }, required: ["taskId", "submission"], additionalProperties: false } },
+  { name: "run_benchmark", description: "Run every task through an OpenRouter model.", inputSchema: { type: "object", properties: { model: { type: "string" } }, required: ["model"], additionalProperties: false } },
   { name: "get_provenance", description: "Get benchmark data provenance.", inputSchema: { type: "object", properties: {}, additionalProperties: false } },
 ];
 
 const content = (value: unknown, isError = false) => ({ content: [{ type: "text" as const, text: JSON.stringify(value) }], ...(isError ? { isError: true } : {}) });
-const pickBenchmark = (input: Record<string, JsonValue | undefined>): Benchmark<RecoveryTask> =>
-  typeof input.tasks === "string" ? createBenchmark({ tasksPath: input.tasks }) : benchmark;
+// Task files are bound by the operator, never by a tool caller: a per-call path would let an MCP client read arbitrary files.
+const pickBenchmark = (_input: Record<string, JsonValue | undefined>): Benchmark<RecoveryTask> => benchmark;
 
 export function createMcpServer() {
   const server = new Server({ name: benchmark.definition.id, version: benchmark.definition.version }, { capabilities: { tools: {} } });
