@@ -1,10 +1,11 @@
 import { readFile } from "node:fs/promises";
-import { defineBenchmark, replay, type Environment, type JsonValue, type Task, type ToolResult } from "benchmark-core";
+import { resolve } from "node:path";
+import { defineBenchmark, replay, type Benchmark, type Environment, type JsonValue, type RunReport, type RunRow, type Task, type ToolResult } from "benchmark-core";
 
 type Domain = "invoicing" | "email" | "calendar" | "inventory";
 type Fault = "rate_limit" | "one_time_500" | "timeout_committed" | "schema_drift" | "partial_success" | "permanent_failure";
 type Outcome = "succeeded" | "failed";
-type RecoveryTask = Task & { metadata: Record<string, JsonValue> };
+export type RecoveryTask = Task & { metadata: Record<string, JsonValue> };
 
 interface SimulatorState {
   attempts: number;
@@ -45,8 +46,9 @@ function metadata(task: RecoveryTask) {
   };
 }
 
-async function loadTasks(): Promise<RecoveryTask[]> {
-  const text = await readFile(new URL("../data/tasks.jsonl", import.meta.url), "utf8");
+export async function loadTasks(tasksPath?: string): Promise<RecoveryTask[]> {
+  const source = tasksPath ? resolve(tasksPath) : new URL("../data/tasks.jsonl", import.meta.url);
+  const text = await readFile(source, "utf8");
   return text.trim().split("\n").map((line) => JSON.parse(line) as RecoveryTask);
 }
 
@@ -184,9 +186,11 @@ function goodPolicy(task: RecoveryTask) {
   return [write(), write(), report("failed", "The service remained unavailable; no change was made.")];
 }
 
-export const benchmark = defineBenchmark<RecoveryTask>({
+export function createBenchmark(options: { tasksPath?: string } = {}): Benchmark<RecoveryTask> {
+  return defineBenchmark<RecoveryTask>({
   id: "benchmark-tool-errors", name: "Tool Errors", tagline: "Retry safely when APIs fail.", tags: ["helpful"], category: "tools",
-  whatItMeasures: "Safe, bounded recovery from API faults without duplicate side effects or false success reports.", version: "0.1.0", status: "alpha", loadTasks,
+  whatItMeasures: "Safe, bounded recovery from API faults without duplicate side effects or false success reports.", version: "0.1.0", status: "alpha",
+  loadTasks: () => loadTasks(options.tasksPath),
   async grade(task, submission, context) {
     const state = await replay(new FaultEnvironment(), task, submission.toolLog ?? [], context.seed) as SimulatorState;
     const expected = expectedOutcome(task); const permanent = expected === "failed";
@@ -224,4 +228,73 @@ export const benchmark = defineBenchmark<RecoveryTask>({
     refresh: "Regenerate and review public fixtures for each minor release; rotate the private hidden seed for every evaluation campaign.",
   }],
   gradingMethod: "Deterministic replay scores end state (45%), side-effect safety (25%), bounded and timed retries (20%), and truthful reporting (10%); duplicate side effects score zero.",
-});
+  });
+}
+
+export const benchmark = createBenchmark();
+
+export interface RecoveryBreakdown {
+  byFault: Record<string, { count: number; mean: number }>;
+  byDomain: Record<string, { count: number; mean: number }>;
+  components: Record<string, number>;
+  recoveryLadder: Record<string, number>;
+  policyViolations: Record<string, number>;
+}
+
+interface GradeDetails {
+  components?: Record<string, number>;
+  policyViolations?: string[];
+  recoveryLadder?: string;
+}
+
+const detail = (row: RunRow): GradeDetails => {
+  const value = (row as RunRow & { details?: unknown }).details;
+  return value !== null && typeof value === "object" && !Array.isArray(value) ? value as GradeDetails : {};
+};
+
+export function summarize(rows: readonly RunRow[], tasks: readonly RecoveryTask[]): RecoveryBreakdown {
+  const faults = new Map(tasks.map((task) => [task.id, metadata(task)]));
+  const byFault: Record<string, number[]> = {}; const byDomain: Record<string, number[]> = {};
+  const components: Record<string, number[]> = {}; const recoveryLadder: Record<string, number> = {};
+  const policyViolations: Record<string, number> = {};
+  for (const row of rows) {
+    const meta = faults.get(row.taskId);
+    if (!meta) continue;
+    (byFault[meta.fault] ??= []).push(row.score);
+    (byDomain[meta.domain] ??= []).push(row.score);
+    const details = detail(row);
+    for (const [name, value] of Object.entries(details.components ?? {})) (components[name] ??= []).push(value);
+    if (details.recoveryLadder) recoveryLadder[details.recoveryLadder] = (recoveryLadder[details.recoveryLadder] ?? 0) + 1;
+    for (const name of details.policyViolations ?? []) policyViolations[name] = (policyViolations[name] ?? 0) + 1;
+  }
+  const fold = (groups: Record<string, number[]>) => Object.fromEntries(Object.entries(groups)
+    .map(([name, scores]) => [name, { count: scores.length, mean: scores.reduce((sum, value) => sum + value, 0) / scores.length }]));
+  const meanOf = (values: number[]) => values.reduce((sum, value) => sum + value, 0) / values.length;
+  return { byFault: fold(byFault), byDomain: fold(byDomain), recoveryLadder, policyViolations,
+    components: Object.fromEntries(Object.entries(components).map(([name, values]) => [name, meanOf(values)])) };
+}
+
+// benchmark-core drops grader details from run rows, so rescore each submitted
+// trace and attach the component breakdown plus suite-level aggregates.
+export async function enrichReport(report: RunReport, bench: Benchmark<RecoveryTask> = benchmark) {
+  const tasks = await bench.listTasks();
+  const rows = [] as RunRow[];
+  for (const row of report.rows) {
+    const task = await bench.getTask(row.taskId);
+    const grade = task && row.submission !== undefined ? await bench.score(task, row.submission, { seed: report.seed }) : undefined;
+    rows.push(grade?.details === undefined ? row : { ...row, details: grade.details } as RunRow);
+  }
+  const enriched = { ...report, rows };
+  return { ...enriched, breakdown: summarize(rows, [...tasks]) };
+}
+
+export function breakdownMarkdown(breakdown: RecoveryBreakdown): string {
+  const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
+  const lines = ["## Breakdown", "", "| Fault | Tasks | Mean score |", "| --- | ---: | ---: |"];
+  for (const [fault, stats] of Object.entries(breakdown.byFault)) lines.push(`| ${fault} | ${stats.count} | ${percent(stats.mean)} |`);
+  const ladder = Object.entries(breakdown.recoveryLadder).map(([name, count]) => `${name}: ${count}`).join(", ") || "none";
+  const components = Object.entries(breakdown.components).map(([name, value]) => `${name}: ${percent(value)}`).join(", ") || "none";
+  const violations = Object.entries(breakdown.policyViolations).map(([name, count]) => `${name}: ${count}`).join(", ") || "none";
+  lines.push("", `- Recovery ladder: ${ladder}`, `- Component means: ${components}`, `- Policy violations: ${violations}`, "");
+  return lines.join("\n");
+}
