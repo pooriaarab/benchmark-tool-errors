@@ -11,7 +11,7 @@ if (!new Set(["public", "hidden"]).has(split)) throw new Error("--split must be 
 const PUBLIC_SEED = 20261015;
 // The hidden seed is private: pass --seed or set BTER_HIDDEN_SEED, never commit it.
 const hiddenSeed = option("--seed", process.env.BTER_HIDDEN_SEED);
-if (split === "hidden" && hiddenSeed === undefined) throw new Error("hidden split needs --seed or BTER_HIDDEN_SEED");
+if (split === "hidden" && !hiddenSeed) throw new Error("hidden split needs --seed or BTER_HIDDEN_SEED");
 const seed = Number(split === "hidden" ? hiddenSeed : option("--seed", String(PUBLIC_SEED)));
 if (!Number.isSafeInteger(seed)) throw new Error("--seed must be a safe integer");
 
@@ -121,4 +121,4 @@ const tasks = ordered.map((entry, position) => ({
 const output = option("--out", split === "public" ? "data/tasks.jsonl" : ".hidden/tasks.jsonl");
 await mkdir(output.slice(0, Math.max(output.lastIndexOf("/"), 0)) || ".", { recursive: true });
 await writeFile(output, `${tasks.map((task) => JSON.stringify(task)).join("\n")}\n`);
-console.log(`generated ${tasks.length} ${split} tasks at ${output}${split === "public" ? ` with seed ${seed}` : ""}`);
+console.log(`generated ${tasks.length} ${split} tasks at ${output}${split === "hidden" ? "" : ` with seed ${seed}`}`);
