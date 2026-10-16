@@ -227,7 +227,7 @@ Version 0.2.0 is alpha. Task schemas and component details can change before
 1.0. There is no public leaderboard or public model case study yet.
 
 Run `npm run ci:local` before submitting changes. The gate checks all 40 tasks,
-every runtime surface, and seven trivial bad policies. Report defects through
+every runtime surface, and eight trivial and blind policies. Report defects through
 the [issue tracker](https://github.com/pooriaarab/benchmark-tool-errors/issues).
 
 ## FAQ
