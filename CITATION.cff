@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it using the metadata below."
+title: "benchmark-tool-errors"
+type: software
+authors:
+  - family-names: Arab
+    given-names: Pooria
+version: "0.2.0"
+date-released: 2026-10-16
+license: MIT
+repository-code: https://github.com/pooriaarab/benchmark-tool-errors
+url: "https://private-repo-337e.com/benchmarks/benchmark-tool-errors"
+abstract: "AI benchmark for safe retries, idempotency, and truthful recovery from API and tool failures."
+keywords:
+  - ai-benchmark
+  - llm-evaluation
+  - agent-evaluation
+  - deterministic-grader
