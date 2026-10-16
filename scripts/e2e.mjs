@@ -54,11 +54,11 @@ for (const task of tasks) {
     { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
     { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
   ]) })).score);
-  // A read of an unrelated key before writing must not count as verification.
+  // A read of an unrelated key must not count as verification, before or after the write.
   badScores.bogusRead.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
     { toolCalls: [{ name: "read_status", args: { operationKey: "BOGUS" } }] },
-    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
-    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
     { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "done" } }] },
   ]) })).score);
 }
