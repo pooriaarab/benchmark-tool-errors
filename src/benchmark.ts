@@ -28,6 +28,8 @@ interface ReplayState extends SimulatorState {
 // same text with different case or spacing. Empty input never parses.
 function valuesEqual(expected: JsonValue, actual: JsonValue): boolean {
   if (Object.is(expected, actual)) return true;
+  // Arrays and objects stringify into matching text; only scalars may be reformatted.
+  if ((typeof actual === "object" && actual !== null) || (typeof expected === "object" && expected !== null)) return false;
   const text = (value: JsonValue) => String(value ?? "").trim().replace(/\s+/g, " ").toLowerCase();
   const numeric = (value: JsonValue) => {
     const raw = text(value).replace(/^\$/, "");
