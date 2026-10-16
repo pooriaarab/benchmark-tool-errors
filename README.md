@@ -118,7 +118,7 @@ permanent failure.
 - **State replay:** Scoring reruns recorded calls instead of trusting output.
 - **Safety gate:** Any duplicate side effect makes the task score zero.
 - **Virtual time:** Rate-limit checks never make the suite sleep.
-- **Adversarial gate:** Empty, constant, always-yes, always-refuse, repeated-call, and blind write-wait-write policies score well below the good policy.
+- **Adversarial gate:** Empty, constant, always-yes, always-refuse, repeated-call, blind write-wait-write, two-field blind, and claim-without-read policies score well below the good policy.
 - **Share cards:** The CLI renders a 1200×630 SVG from a report.
 - **Inspectability:** Tasks, generator, grader, and provenance ship together.
 
@@ -227,7 +227,7 @@ Version 0.2.0 is alpha. Task schemas and component details can change before
 1.0. There is no public leaderboard or public model case study yet.
 
 Run `npm run ci:local` before submitting changes. The gate checks all 40 tasks,
-every runtime surface, and eight trivial and blind policies. Report defects through
+every runtime surface, and ten trivial and blind policies. Report defects through
 the [issue tracker](https://github.com/pooriaarab/benchmark-tool-errors/issues).
 
 ## FAQ
