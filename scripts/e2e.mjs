@@ -21,28 +21,75 @@ const report = JSON.parse(cli.stdout);
 assert.equal(report.rows.length, 40);
 assert.ok(report.rows.some((row) => row.score >= 0.99));
 assert.ok(report.rows.some((row) => row.score <= 0.25));
+assert.ok(report.rows.every((row) => row.details && row.details.components));
+assert.equal(Object.keys(report.breakdown?.byFault ?? {}).length, 6);
+assert.ok(Object.keys(report.breakdown?.recoveryLadder ?? {}).length >= 1);
 await writeFile("artifacts/mock-report.json", cli.stdout);
 const rescored = await execFile(process.execPath, ["dist/cli.js", "score", "artifacts/mock-report.json", "--json"], { maxBuffer: 1_000_000 });
 assert.equal(JSON.parse(rescored.stdout).rows.length, 40);
 await execFile(process.execPath, ["dist/cli.js", "card", "artifacts/mock-report.json", "artifacts/share-card.svg"]);
 assert.match(await readFile("artifacts/share-card.svg", "utf8"), /<svg/);
 
-const { benchmark } = await import("../dist/index.js");
+const { benchmark, createBenchmark } = await import("../dist/index.js");
 const tasks = await benchmark.listTasks();
-const goodScores = []; const badScores = { empty: [], random: [], alwaysYes: [], repeatedCall: [] };
+const writeTools = { invoicing: "create_invoice", email: "send_email", calendar: "create_event", inventory: "adjust_inventory" };
+const goodScores = [];
+const badScores = { empty: [], constantAnswer: [], alwaysYes: [], alwaysRefuse: [], repeatedCall: [], unknownTool: [], blindScript: [] };
 const log = (turns) => turns.flatMap((turn) => (turn.toolCalls ?? []).map((call) => ({ ...call, result: null })));
 for (const task of tasks) {
+  const action = writeTools[task.metadata.domain];
+  const key = task.metadata.operationKey; const value = task.metadata.value;
   const goodTurns = benchmark.definition.mockPolicies.good(task);
   goodScores.push((await benchmark.score(task, { toolLog: log(goodTurns) })).score);
   badScores.empty.push((await benchmark.score(task, {})).score);
-  badScores.random.push((await benchmark.score(task, { toolLog: [{ name: "dance", args: { guess: 42 }, result: null }] })).score);
+  badScores.constantAnswer.push((await benchmark.score(task, { answer: "done" })).score);
   badScores.alwaysYes.push((await benchmark.score(task, { toolLog: [{ name: "report_outcome", args: { status: "succeeded", message: "yes" }, result: null }] })).score);
-  const repeated = Array.from({ length: 5 }, () => ({ name: "create_invoice", args: { operationKey: "SAME", value: "same" }, result: null }));
-  badScores.repeatedCall.push((await benchmark.score(task, { toolLog: repeated })).score);
+  badScores.alwaysRefuse.push((await benchmark.score(task, { toolLog: [{ name: "report_outcome", args: { status: "failed", message: "I refuse to attempt this." }, result: null }] })).score);
+  badScores.repeatedCall.push((await benchmark.score(task, { toolLog: Array.from({ length: 5 }, () => ({ name: action, args: { operationKey: "SAME", value: "same" }, result: null })) })).score);
+  badScores.unknownTool.push((await benchmark.score(task, { toolLog: [{ name: "dance", args: { guess: 42 }, result: null }] })).score);
+  // The blind script from the deep review: write, wait, write again, claim success.
+  badScores.blindScript.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: "wait", args: { seconds: 10 } }] },
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
+  ]) })).score);
 }
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
 assert.ok(mean(goodScores) >= 0.95);
-for (const scores of Object.values(badScores)) assert.ok(mean(scores) <= 0.25);
+for (const [name, scores] of Object.entries(badScores)) {
+  const cap = name === "blindScript" ? 0.75 : 0.25;
+  assert.ok(mean(scores) <= cap, `${name} mean ${mean(scores)} above cap ${cap}`);
+}
+
+// Hidden split: unpublished seed, own id prefix, no shared prompts or answers.
+await execFile(process.execPath, ["scripts/gen-tasks.mjs", "--split", "hidden", "--out", "artifacts/hidden-tasks.jsonl"]);
+const hiddenTasks = (await readFile("artifacts/hidden-tasks.jsonl", "utf8")).trim().split("\n").map((line) => JSON.parse(line));
+assert.equal(hiddenTasks.length, tasks.length);
+const publicIds = new Set(tasks.map((task) => task.id));
+const publicPrompts = new Set(tasks.map((task) => task.prompt));
+const publicExpected = new Set(tasks.map((task) => JSON.stringify(task.expected)));
+for (const hidden of hiddenTasks) {
+  assert.ok(hidden.id.startsWith("hidden-"), "hidden id lacks the hidden prefix");
+  assert.ok(!publicIds.has(hidden.id), "hidden id collides with a public task");
+  assert.ok(!publicPrompts.has(hidden.prompt), "hidden prompt matches a public prompt");
+  assert.ok(!publicExpected.has(JSON.stringify(hidden.expected)), "hidden expected answer matches a public one");
+}
+const hiddenBenchmark = createBenchmark({ tasksPath: "artifacts/hidden-tasks.jsonl" });
+assert.equal((await hiddenBenchmark.listTasks()).length, 40);
+for (let index = 0; index < hiddenTasks.length; index++) {
+  const hidden = hiddenTasks[index];
+  const goodScore = (await hiddenBenchmark.score(hidden, { toolLog: log(benchmark.definition.mockPolicies.good(hidden)) })).score;
+  assert.ok(goodScore >= 0.99, `good policy scored ${goodScore} on ${hidden.id}`);
+  const reference = tasks[index % tasks.length];
+  const referenceScore = (await hiddenBenchmark.score(hidden, { toolLog: log(benchmark.definition.mockPolicies.good(reference)) })).score;
+  assert.ok(referenceScore < 1, `public reference trace scored ${referenceScore} on ${hidden.id}`);
+}
+const hiddenCli = await execFile(process.execPath, ["dist/cli.js", "run", "--provider", "mock", "--tasks", "artifacts/hidden-tasks.jsonl", "--json"], { maxBuffer: 1_000_000 });
+const hiddenReport = JSON.parse(hiddenCli.stdout);
+assert.equal(hiddenReport.rows.length, 40);
+assert.ok(hiddenReport.rows.every((row) => row.taskId.startsWith("hidden-")));
+assert.ok(hiddenReport.breakdown?.byFault);
 
 const probe = createNetServer();
 await new Promise((resolve) => probe.listen(0, "127.0.0.1", resolve));
@@ -74,11 +121,14 @@ try {
   const calls = [
     ["list_tasks", {}], ["get_task", { taskId: "tool-error-001" }],
     ["score_answer", { taskId: "tool-error-001", submission: report.rows[0].submission }],
+    ["list_tasks", { tasks: "artifacts/hidden-tasks.jsonl" }],
     ["get_provenance", {}], ["run_benchmark", { model: "offline" }],
   ];
   for (const [name, args] of calls) {
     const result = await client.callTool({ name, arguments: args });
     if (name === "run_benchmark") assert.equal(result.isError, true); else assert.notEqual(result.isError, true);
+    if (name === "list_tasks" && args.tasks) assert.equal(JSON.parse(result.content[0].text).tasks.length, 40);
+    if (name === "score_answer") assert.ok(JSON.parse(result.content[0].text).details);
   }
 } finally { await client.close(); }
 
