@@ -2,10 +2,10 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.pooriaarab/benchmark-tool-errors",
   "description": "Benchmark safe retries, idempotency, and truthful recovery from API failures.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "repository": { "url": "https://github.com/pooriaarab/benchmark-tool-errors", "source": "github" },
   "packages": [{
-    "registryType": "npm", "registryBaseUrl": "https://registry.npmjs.org", "identifier": "benchmark-tool-errors", "version": "0.1.0",
+    "registryType": "npm", "registryBaseUrl": "https://registry.npmjs.org", "identifier": "benchmark-tool-errors", "version": "0.2.0",
     "transport": { "type": "stdio" }, "runtimeHint": "npx",
     "packageArguments": [{ "type": "positional", "valueHint": "subcommand", "value": "mcp" }]
   }]

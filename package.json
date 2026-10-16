@@ -1,6 +1,6 @@
 {
   "name": "benchmark-tool-errors",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AI benchmark for safe retries, idempotency, and truthful recovery from API and tool failures.",
   "keywords": [
     "ai-benchmark",

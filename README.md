@@ -30,13 +30,14 @@ A real offline run produces this summary:
 # Tool Errors
 
 - Model: `mock:1`
-- Score: **60.0%**
-- 95% CI: 47.5%–72.5%
+- Score: **50.0%**
+- 95% CI: 35.0%–65.0%
 - Tasks: 40
 ```
 
-Success means the command prints 40 scored rows and a confidence interval. The
-mock needs no key and mixes good and bad recovery policies on purpose.
+The run ends with a breakdown: a mean score per fault family, recovery-ladder
+counts, component means, and policy-violation counts. The mock needs no key and
+mixes good and bad recovery policies on purpose.
 
 The 40 public episodes come from a committed seeded
 [generator](https://github.com/pooriaarab/benchmark-tool-errors/blob/main/scripts/gen-tasks.mjs).
@@ -117,7 +118,7 @@ permanent failure.
 - **State replay:** Scoring reruns recorded calls instead of trusting output.
 - **Safety gate:** Any duplicate side effect makes the task score zero.
 - **Virtual time:** Rate-limit checks never make the suite sleep.
-- **Adversarial gate:** Empty, random, always-yes, and repeated-call policies score low.
+- **Adversarial gate:** Empty, constant, always-yes, always-refuse, repeated-call, blind write-wait-write, two-field blind, and claim-without-read policies score well below the good policy.
 - **Share cards:** The CLI renders a 1200×630 SVG from a report.
 - **Inspectability:** Tasks, generator, grader, and provenance ship together.
 
@@ -133,8 +134,10 @@ const result = await score(tasks[0].id, { toolLog: [] });
 console.log(result.score, result.reason);
 ```
 
-`run(adapter, options)` accepts a `benchmark-core` model adapter. `score()`
-replays a trace without making a model call.
+`run(adapter, options)` accepts a `benchmark-core` model adapter and returns the
+report with per-row grader details and a `breakdown` of per-fault means and
+recovery-ladder counts. `score()` replays a trace without making a model call.
+Pass `tasksPath` in options to run a generated split file.
 
 ### Command-line interface
 
@@ -151,7 +154,8 @@ benchmark-tool-errors mcp
 ```
 
 Add `--json` for machine-readable output. The mock provider defaults its model
-to `offline` when `--model` is absent.
+to `offline` when `--model` is absent. Every command accepts `--tasks <path>`
+to run a generated split file such as `.hidden/tasks.jsonl`.
 
 ### HTTP API
 
@@ -200,11 +204,17 @@ model ID from that endpoint.
 
 ```bash
 node scripts/gen-tasks.mjs --seed 20261015 --split public
-node scripts/gen-tasks.mjs --seed 777 --split hidden
+node scripts/gen-tasks.mjs --split hidden --seed <private>   # writes ignored .hidden/tasks.jsonl
+npx benchmark-tool-errors run --provider mock --tasks .hidden/tasks.jsonl
 ```
 
-The hidden command writes ignored `.hidden/tasks.jsonl`. Keep private seeds and
-hidden fixtures out of packages and repositories.
+The hidden split needs a private seed passed with `--seed` or the
+`BTER_HIDDEN_SEED` environment variable; it is never committed. Hidden tasks
+use their own `hidden-` id prefix, `H`-tagged operation keys, a seeded fault
+order, and different values, so no hidden prompt or expected answer matches a
+public task. Pass `--out` to change the output path. Keep hidden fixtures out
+of packages and repositories; the SDK (`run(adapter, { tasksPath })`), API
+(`createApiHandler({ tasksPath })`), and `mcp --tasks` accept the same file.
 
 The design credits Stripe's [idempotent request
 documentation](https://docs.stripe.com/api/idempotent_requests) and AWS guidance
@@ -213,11 +223,11 @@ They inspired categories only. Their text and fixtures are not in the dataset.
 
 ## Status
 
-Version 0.1.0 is alpha. Task schemas and component details can change before
+Version 0.2.0 is alpha. Task schemas and component details can change before
 1.0. There is no public leaderboard or public model case study yet.
 
 Run `npm run ci:local` before submitting changes. The gate checks all 40 tasks,
-every runtime surface, and four trivial bad policies. Report defects through
+every runtime surface, and ten trivial and blind policies. Report defects through
 the [issue tracker](https://github.com/pooriaarab/benchmark-tool-errors/issues).
 
 ## FAQ
@@ -245,7 +255,8 @@ The public seed is `20261015`, and the code is MIT licensed.
 ### How does benchmark-tool-errors prevent grader gaming?
 
 benchmark-tool-errors replays the tool log and ignores claimed final state. Its
-gate proves that four trivial answer policies have a mean score at most 0.25.
+gate proves that trivial and blind answer policies score well below the good
+policy.
 
 ### Which integrations are verified?
 
@@ -269,8 +280,9 @@ reports. τ²-bench focuses on longer tool-agent-user interaction in domains.
 
 ### Can benchmark-tool-errors use a hidden split?
 
-benchmark-tool-errors generates the same schema into ignored `.hidden/` data.
-Use a private seed for final comparisons and rotate it between campaigns.
+benchmark-tool-errors generates a distinct hidden split into ignored `.hidden/`
+data. Run it with `--tasks .hidden/tasks.jsonl`; use a private seed for final
+comparisons and rotate it between campaigns.
 
 ## License
 
