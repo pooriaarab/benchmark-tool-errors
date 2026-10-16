@@ -1,7 +1,7 @@
 import { run as runBenchmark, type ModelAdapter, type RunOptions, type Trace } from "benchmark-core";
 import { benchmark, createBenchmark, enrichReport } from "./benchmark.js";
-export { benchmark, createBenchmark, enrichReport, summarize, breakdownMarkdown, loadTasks } from "./benchmark.js";
-export type { RecoveryBreakdown } from "./benchmark.js";
+export { benchmark, createBenchmark, enrichReport, summarize, breakdownMarkdown, loadTasks, scoreReplayedState, FaultEnvironment } from "./benchmark.js";
+export type { RecoveryBreakdown, RecoveryTask, ReplayState, EnvironmentSnapshot } from "./benchmark.js";
 
 // `tasksPath` runs a task file such as a generated hidden split instead of the
 // packaged public tasks.

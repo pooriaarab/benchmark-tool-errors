@@ -3,6 +3,7 @@ import { parseArgs } from "node:util";
 import { readFile } from "node:fs/promises";
 import { bootstrapCI, createCli, mockAdapter, openaiCompatAdapter, openrouterAdapter, renderMarkdown, run as coreRun, type ModelAdapter, type RunReport, type RunRow } from "benchmark-core";
 import { benchmark, breakdownMarkdown, createBenchmark, enrichReport, summarize, type RecoveryTask } from "./benchmark.js";
+import { startMcp } from "./mcp.js";
 
 const bin = "benchmark-tool-errors";
 const args = process.argv.slice(2);
@@ -62,6 +63,9 @@ async function main(): Promise<number> {
     console.log(json ? JSON.stringify(enriched) : `${renderMarkdown(enriched)}\n${breakdownMarkdown(enriched.breakdown)}`);
     return 0;
   }
+  // The bin's MCP server is this package's own, so run_benchmark returns the
+  // enriched report with the per-fault and recovery-ladder breakdown.
+  if (forwarded[0] === "mcp") { await startMcp(bench); return 0; }
   return createCli(bench, { bin }).main(forwarded);
 }
 
