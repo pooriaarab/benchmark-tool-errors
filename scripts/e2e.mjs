@@ -34,13 +34,22 @@ const { benchmark, createBenchmark } = await import("../dist/index.js");
 const tasks = await benchmark.listTasks();
 const writeTools = { invoicing: "create_invoice", email: "send_email", calendar: "create_event", inventory: "adjust_inventory" };
 const goodScores = [];
-const badScores = { empty: [], constantAnswer: [], alwaysYes: [], alwaysRefuse: [], repeatedCall: [], unknownTool: [], blindScript: [], bogusRead: [] };
+const badScores = { empty: [], constantAnswer: [], alwaysYes: [], alwaysRefuse: [], repeatedCall: [], unknownTool: [], blindScript: [], contextBlind: [], claimWithoutRead: [], bogusRead: [] };
+const honestScores = { readFirst: [], waitThenRead: [] };
 const log = (turns) => turns.flatMap((turn) => (turn.toolCalls ?? []).map((call) => ({ ...call, result: null })));
 for (const task of tasks) {
   const action = writeTools[task.metadata.domain];
   const key = task.metadata.operationKey; const value = task.metadata.value;
   const goodTurns = benchmark.definition.mockPolicies.good(task);
   goodScores.push((await benchmark.score(task, { toolLog: log(goodTurns) })).score);
+  // Honest re-orderings still score high: a status read before any write, and
+  // a short wait before every read.
+  honestScores.readFirst.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: "read_status", args: { operationKey: key } }] }, ...goodTurns]) })).score);
+  const waitTurn = { toolCalls: [{ name: "wait", args: { seconds: 1 } }] };
+  const waited = goodTurns.flatMap((turn) =>
+    turn.toolCalls?.some((call) => call.name === "read_status") ? [waitTurn, turn] : [turn]);
+  honestScores.waitThenRead.push((await benchmark.score(task, { toolLog: log(waited) })).score);
   badScores.empty.push((await benchmark.score(task, {})).score);
   badScores.constantAnswer.push((await benchmark.score(task, { answer: "done" })).score);
   badScores.alwaysYes.push((await benchmark.score(task, { toolLog: [{ name: "report_outcome", args: { status: "succeeded", message: "yes" }, result: null }] })).score);
@@ -54,6 +63,22 @@ for (const task of tasks) {
     { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
     { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
   ]) })).score);
+  // The context-blind script from the second review: never reads tool results,
+  // sends both value and payload in every write, then write, wait 10, read,
+  // write, read, and reports success.
+  badScores.contextBlind.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null, payload: value ?? null } }] },
+    { toolCalls: [{ name: "wait", args: { seconds: 10 } }] },
+    { toolCalls: [{ name: "read_status", args: { operationKey: key } }] },
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null, payload: value ?? null } }] },
+    { toolCalls: [{ name: "read_status", args: { operationKey: key } }] },
+    { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
+  ]) })).score);
+  // Claims success after a single write with no read_status at all.
+  badScores.claimWithoutRead.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
+  ]) })).score);
   // A read of an unrelated key must not count as verification, before or after the write.
   badScores.bogusRead.push((await benchmark.score(task, { toolLog: log([
     { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
@@ -63,9 +88,11 @@ for (const task of tasks) {
   ]) })).score);
 }
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
-assert.ok(mean(goodScores) >= 0.95);
+assert.ok(mean(goodScores) >= 0.999, `good mean ${mean(goodScores)} below 0.999`);
+for (const [name, scores] of Object.entries(honestScores))
+  assert.ok(mean(scores) >= 0.99, `honest ${name} mean ${mean(scores)} below 0.99`);
 for (const [name, scores] of Object.entries(badScores)) {
-  const cap = name === "blindScript" || name === "bogusRead" ? 0.75 : 0.25;
+  const cap = ["blindScript", "contextBlind", "claimWithoutRead", "bogusRead"].includes(name) ? 0.35 : 0.25;
   assert.ok(mean(scores) <= cap, `${name} mean ${mean(scores)} above cap ${cap}`);
 }
 
@@ -149,7 +176,8 @@ try {
 } finally { await hiddenClient.close(); }
 
 const artifact = { task_count: report.rows.length, scores: report.rows.map((row) => row.score), route_status_codes: routes, tool_names: toolNames,
-  policy_checks: { good_mean: mean(goodScores), bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])) } };
+  policy_checks: { good_mean: mean(goodScores), honest_means: Object.fromEntries(Object.entries(honestScores).map(([name, scores]) => [name, mean(scores)])),
+    bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])) } };
 await writeFile("artifacts/e2e-report.json", `${JSON.stringify(artifact, null, 2)}\n`);
 assert.match(await readFile("data/PROVENANCE.md", "utf8"), /Seeded API fault scenarios/);
 console.log(`e2e: ${artifact.task_count} tasks, ${Object.keys(routes).length} routes, ${toolNames.length} tools -> all surfaces passed, ok`);
