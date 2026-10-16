@@ -16,11 +16,11 @@ Replay weights correct end state at 45%, side-effect safety at 25%, retry discip
 
 ## Exports
 
-The root exports `benchmark`, `run`, and `score`. `benchmark-tool-errors/api` exports the fetch-style `handler`. `benchmark-tool-errors/mcp` exports MCP builders.
+The root exports `benchmark`, `run`, `score`, `createBenchmark`, `enrichReport`, and `loadTasks`. `benchmark-tool-errors/api` exports the fetch-style `handler` and `createApiHandler`. `benchmark-tool-errors/mcp` exports MCP builders.
 
 ## Commands
 
-The CLI supports `list`, `show`, `run`, `score`, `card`, `provenance`, `index-entry`, `serve`, and `mcp`. Run `npx benchmark-tool-errors run --provider mock` for an offline evaluation.
+The CLI supports `list`, `show`, `run`, `score`, `card`, `provenance`, `index-entry`, `serve`, and `mcp`. Run `npx benchmark-tool-errors run --provider mock` for an offline evaluation. Every command accepts `--tasks <path>` to run a generated split file, and run reports include per-row details plus a per-fault and recovery-ladder `breakdown`.
 
 ## Documents
 
