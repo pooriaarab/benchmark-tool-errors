@@ -34,7 +34,7 @@ const { benchmark, createBenchmark } = await import("../dist/index.js");
 const tasks = await benchmark.listTasks();
 const writeTools = { invoicing: "create_invoice", email: "send_email", calendar: "create_event", inventory: "adjust_inventory" };
 const goodScores = [];
-const badScores = { empty: [], constantAnswer: [], alwaysYes: [], alwaysRefuse: [], repeatedCall: [], unknownTool: [], blindScript: [] };
+const badScores = { empty: [], constantAnswer: [], alwaysYes: [], alwaysRefuse: [], repeatedCall: [], unknownTool: [], blindScript: [], bogusRead: [] };
 const log = (turns) => turns.flatMap((turn) => (turn.toolCalls ?? []).map((call) => ({ ...call, result: null })));
 for (const task of tasks) {
   const action = writeTools[task.metadata.domain];
@@ -54,16 +54,23 @@ for (const task of tasks) {
     { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
     { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "succeeded" } }] },
   ]) })).score);
+  // A read of an unrelated key before writing must not count as verification.
+  badScores.bogusRead.push((await benchmark.score(task, { toolLog: log([
+    { toolCalls: [{ name: "read_status", args: { operationKey: "BOGUS" } }] },
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: action, args: { operationKey: key, value: value ?? null } }] },
+    { toolCalls: [{ name: "report_outcome", args: { status: "succeeded", message: "done" } }] },
+  ]) })).score);
 }
 const mean = (values) => values.reduce((sum, value) => sum + value, 0) / values.length;
 assert.ok(mean(goodScores) >= 0.95);
 for (const [name, scores] of Object.entries(badScores)) {
-  const cap = name === "blindScript" ? 0.75 : 0.25;
+  const cap = name === "blindScript" || name === "bogusRead" ? 0.75 : 0.25;
   assert.ok(mean(scores) <= cap, `${name} mean ${mean(scores)} above cap ${cap}`);
 }
 
-// Hidden split: unpublished seed, own id prefix, no shared prompts or answers.
-await execFile(process.execPath, ["scripts/gen-tasks.mjs", "--split", "hidden", "--out", "artifacts/hidden-tasks.jsonl"]);
+// Hidden split: own id prefix, no shared prompts or answers. The seed is a throwaway test seed, not a private one.
+await execFile(process.execPath, ["scripts/gen-tasks.mjs", "--split", "hidden", "--seed", "4242", "--out", "artifacts/hidden-tasks.jsonl"]);
 const hiddenTasks = (await readFile("artifacts/hidden-tasks.jsonl", "utf8")).trim().split("\n").map((line) => JSON.parse(line));
 assert.equal(hiddenTasks.length, tasks.length);
 const publicIds = new Set(tasks.map((task) => task.id));
@@ -121,16 +128,25 @@ try {
   const calls = [
     ["list_tasks", {}], ["get_task", { taskId: "tool-error-001" }],
     ["score_answer", { taskId: "tool-error-001", submission: report.rows[0].submission }],
-    ["list_tasks", { tasks: "artifacts/hidden-tasks.jsonl" }],
     ["get_provenance", {}], ["run_benchmark", { model: "offline" }],
   ];
   for (const [name, args] of calls) {
     const result = await client.callTool({ name, arguments: args });
     if (name === "run_benchmark") assert.equal(result.isError, true); else assert.notEqual(result.isError, true);
-    if (name === "list_tasks" && args.tasks) assert.equal(JSON.parse(result.content[0].text).tasks.length, 40);
     if (name === "score_answer") assert.ok(JSON.parse(result.content[0].text).details);
   }
 } finally { await client.close(); }
+
+// A task file binds the MCP server at startup, never per call.
+const hiddenTransport = new StdioClientTransport({ command: process.execPath, args: ["dist/cli.js", "mcp", "--tasks", "artifacts/hidden-tasks.jsonl"], cwd: process.cwd(), stderr: "pipe" });
+const hiddenClient = new Client({ name: "benchmark-tool-errors-e2e-hidden", version: "0.1.0" });
+await hiddenClient.connect(hiddenTransport);
+try {
+  const listed = await hiddenClient.callTool({ name: "list_tasks", arguments: {} });
+  const listedTasks = JSON.parse(listed.content[0].text).tasks;
+  assert.equal(listedTasks.length, 40);
+  assert.ok(listedTasks.every((task) => task.id.startsWith("hidden-")));
+} finally { await hiddenClient.close(); }
 
 const artifact = { task_count: report.rows.length, scores: report.rows.map((row) => row.score), route_status_codes: routes, tool_names: toolNames,
   policy_checks: { good_mean: mean(goodScores), bad_means: Object.fromEntries(Object.entries(badScores).map(([name, scores]) => [name, mean(scores)])) } };
