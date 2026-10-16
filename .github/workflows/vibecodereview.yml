@@ -25,7 +25,10 @@ jobs:
           max_council_runs: 3
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           claude_code_oauth_token_2: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_2 }}
+          claude_code_oauth_token_3: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_3 }}
           claude_code_oauth_token_4: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN_4 }}
+          devin_cli_key: ${{ secrets.DEVIN_CLI_KEY }}
+          cursor_api_key: ${{ secrets.CURSOR_API_KEY }}
           github_token: ${{ github.token }}
           openai_api_key: ${{ secrets.OPENAI_API_KEY }}
           gemini_api_key: ${{ secrets.GEMINI_API_KEY }}
