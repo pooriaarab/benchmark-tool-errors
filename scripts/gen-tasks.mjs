@@ -9,9 +9,9 @@ function option(name, fallback) {
 const split = option("--split", "public");
 if (!new Set(["public", "hidden"]).has(split)) throw new Error("--split must be public or hidden");
 const PUBLIC_SEED = 20261015;
-// Unpublished default for the hidden split. Rotate it for each evaluation campaign.
-const HIDDEN_SEED = 618727;
-const seed = Number(option("--seed", String(split === "hidden" ? HIDDEN_SEED : PUBLIC_SEED)));
+const seedOption = option("--seed", split === "public" ? String(PUBLIC_SEED) : undefined);
+if (seedOption === undefined) throw new Error("--seed is required for the hidden split; keep the private seed out of the repository");
+const seed = Number(seedOption);
 if (!Number.isSafeInteger(seed)) throw new Error("--seed must be a safe integer");
 
 function mulberry32(value) {
@@ -95,10 +95,12 @@ const domains = [
 ];
 
 const drafted = [];
+// Hidden keys carry an H so they can never collide with public keys, whatever seed is chosen.
+const keyTag = split === "hidden" ? `H${seed % 100000}` : `${seed % 100000}`;
 for (const domain of domains) {
   const schedule = shuffle([...faults, pick(faults), pick(faults), pick(faults), pick(faults)]);
   for (let index = 0; index < 10; index++) {
-    const key = `${domain.keyPrefix}-${seed % 100000}-${index + 1}`;
+    const key = `${domain.keyPrefix}-${keyTag}-${index + 1}`;
     drafted.push({ domain: domain.name, fault: schedule[index], fixture: domain.make(index, key) });
   }
 }
@@ -118,4 +120,4 @@ const tasks = ordered.map((entry, position) => ({
 const output = option("--out", split === "public" ? "data/tasks.jsonl" : ".hidden/tasks.jsonl");
 await mkdir(output.slice(0, Math.max(output.lastIndexOf("/"), 0)) || ".", { recursive: true });
 await writeFile(output, `${tasks.map((task) => JSON.stringify(task)).join("\n")}\n`);
-console.log(`generated ${tasks.length} ${split} tasks at ${output} with seed ${seed}`);
+console.log(`generated ${tasks.length} ${split} tasks at ${output}${split === "public" ? ` with seed ${seed}` : ""}`);
