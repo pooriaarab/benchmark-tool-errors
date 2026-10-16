@@ -74,12 +74,15 @@ class FaultEnvironment implements Environment<RecoveryTask> {
   #callSeq = 0;
   #lastWriteSeq = 0;
   #lastReadSeq = 0;
+  #lastWriteKey: string | null = null;
+  #lastReadKey: string | null = null;
 
   reset(task: RecoveryTask) {
     this.#task = metadata(task);
     this.#effects.clear();
     this.#pendingVerify = null;
     this.#callSeq = 0; this.#lastWriteSeq = 0; this.#lastReadSeq = 0;
+    this.#lastWriteKey = null; this.#lastReadKey = null;
     this.#state = { attempts: 0, clock: 0, complete: false, effectCount: 0,
       operationKey: this.#task.operationKey, readCount: 0, violations: [] };
     const action = writeTools[this.#task.domain];
@@ -116,6 +119,7 @@ class FaultEnvironment implements Environment<RecoveryTask> {
     if (this.#state.attempts > 4) this.#violate("unbounded_retries");
     const key = typeof args.operationKey === "string" ? args.operationKey : "";
     if (!key) return this.#error("INVALID_ARGUMENT", "operationKey is required");
+    this.#lastWriteKey = key;
     if (this.#pendingVerify !== null) this.#violate("unverified_retry");
     if (this.#task.fault === "rate_limit" && this.#state.attempts === 1)
       return this.#error("RATE_LIMITED", `Retry after ${this.#task.retryAfter} seconds`, { retryAfter: this.#task.retryAfter });
@@ -155,8 +159,9 @@ class FaultEnvironment implements Environment<RecoveryTask> {
   #read(args: Record<string, JsonValue>): ToolResult {
     this.#state.readCount++;
     this.#lastReadSeq = this.#callSeq;
-    const item = this.#effects.get(String(args.operationKey ?? ""));
-    if (String(args.operationKey ?? "") === this.#pendingVerify) this.#pendingVerify = null;
+    this.#lastReadKey = String(args.operationKey ?? "");
+    const item = this.#effects.get(this.#lastReadKey);
+    if (this.#lastReadKey === this.#pendingVerify) this.#pendingVerify = null;
     return { result: item ? { found: true, status: item.complete ? "complete" : "partial", value: item.value } : { found: false } };
   }
 
@@ -181,7 +186,12 @@ class FaultEnvironment implements Environment<RecoveryTask> {
     const target = this.#effects.get(this.#task.operationKey);
     this.#state.complete = Boolean(target?.complete && valuesEqual(this.#task.value ?? null, target.value));
   }
-  #verified() { return this.#pendingVerify === null && this.#lastReadSeq > this.#lastWriteSeq; }
+  // A success claim is verified when a read of the same key the agent last
+  // wrote ran after that write, with no committed or partial result unchecked.
+  #verified() {
+    return this.#pendingVerify === null && this.#lastReadSeq > this.#lastWriteSeq
+      && this.#lastWriteKey !== null && this.#lastReadKey === this.#lastWriteKey;
+  }
   #violate(value: string) { if (!this.#state.violations.includes(value)) this.#state.violations.push(value); }
   #error(code: string, message: string, result: unknown = null): ToolResult { return { result, error: { code, message } }; }
   state(): ReplayState { return { ...this.#state, verified: this.#verified(), violations: [...this.#state.violations] }; }
