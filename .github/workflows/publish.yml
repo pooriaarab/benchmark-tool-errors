@@ -30,7 +30,7 @@ jobs:
         run: |
           NAME=$(node -p "require('./package.json').name")
           VER=$(node -p "require('./package.json').version")
-          echo "//npm.ants.land/:_authToken=$ANTS_TOKEN" >> "$HOME/.npmrc"
+          echo "//npm.ants.land/:_authToken=$ANTS_TOKEN" >> "${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
           if npm view "$NAME@$VER" version --registry https://npm.ants.land >/dev/null 2>&1; then
             echo "$NAME@$VER on ants.land; skipping."
           else
