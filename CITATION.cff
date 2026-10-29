@@ -17,3 +17,13 @@ keywords:
   - llm-evaluation
   - agent-evaluation
   - deterministic-grader
+preferred-citation:
+  type: article
+  title: "Tool Errors: Measuring Safe Recovery from Ambiguous API Failures"
+  authors:
+    - family-names: Arab
+      given-names: Pooria
+      orcid: "https://orcid.org/0009-0005-9964-6841"
+  year: 2026
+  url: "https://github.com/pooriaarab/benchmark-tool-errors/tree/bter-27-recovery-paper/paper"
+  notes: "Unpublished preprint; paper text and figures CC-BY-4.0."

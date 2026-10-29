@@ -1,0 +1,5 @@
+\begin{figure}[ht]\centering
+\begin{tikzpicture}\begin{axis}[xmin=0,xmax=1,ymin=0,ymax=1.08,xlabel={Simulated probability of omitting each status read},ylabel={Full-credit fraction}]
+\addplot[color=okorange,mark=square*,thick,error bars/.cd,y dir=both,y explicit] table[x=p,y=value,y error minus=low,y error plus=high,col sep=comma]{figures/sweep.generated.csv};
+\end{axis}\end{tikzpicture}
+\caption{The simulated population loses full credit as reads disappear. Each point averages \NSeeds{} simulated seed-level suites. Bars show \CiLevel\% bootstrap intervals over seeds; they do not estimate trained-agent performance or new-task uncertainty.}\label{fig:sweep}\end{figure}

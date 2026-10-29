@@ -1,0 +1,23 @@
+import assert from 'node:assert/strict';
+import { readFile, writeFile, readdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { benchmark } from '../../dist/index.js';
+import { mean, wilson, bootstrap } from '../template/stats.mjs';
+const read=async n=>JSON.parse(await readFile(`paper/data/${n}.generated.json`)), hash=x=>createHash('sha256').update(x).digest('hex');
+const runs=await read('runs'), repeat=await read('repeat'), population=await read('population'), summary=await read('summary'), provenance=await read('provenance');
+const tasks=await benchmark.listTasks(), map=new Map(tasks.map(t=>[t.id,t])), faults=summary.coverage.map(x=>x.fault), strata=rows=>faults.map(f=>rows.filter(r=>map.get(r.taskId).metadata.fault===f));
+const semantic=r=>r.rows.map(({taskId,submission,episode,score,reason})=>({taskId,submission,episode,score,reason}));
+let rows=0;
+for (const {report} of [...runs,...repeat,...population]) for(const r of report.rows) { const g=await benchmark.score(map.get(r.taskId),r.submission,{seed:report.seed}); assert.equal(g.score,r.score); assert.equal(g.reason,r.reason); assert.deepEqual(g.details,r.details); rows++; }
+for(const [i,x] of runs.entries()) { const saved=summary.stats[i], rs=x.report.rows; assert.equal(saved.policy,x.policy); assert.deepEqual(saved.mean,bootstrap(strata(rs),gs=>mean(gs.flat().map(r=>r.score)))); assert.deepEqual(saved.full,wilson(rs.filter(r=>r.score===1).length,rs.length)); for(const [key,rate] of Object.entries(saved.components)) assert.deepEqual(rate,wilson(rs.filter(r=>r.details.components[key]===1).length,rs.length)); for(const [fault,rate] of Object.entries(saved.byFault)) { const subset=rs.filter(r=>map.get(r.taskId).metadata.fault===fault); assert.deepEqual(rate,wilson(subset.filter(r=>r.score===1).length,subset.length)); } assert.deepEqual(saved.difference,bootstrap(strata(rs.map((r,j)=>({...r,score:r.score-runs[0].report.rows[j].score}))),gs=>mean(gs.flat().map(r=>r.score)))); assert.equal(hash(JSON.stringify(semantic(x.report))),repeat[i].sha256); assert.equal(repeat[i].sha256,hash(JSON.stringify(semantic(repeat[i].report)))); }
+for(const x of summary.sweep) { const stats=population.filter(p=>p.probability===x.probability).map(p=>({seed:p.seed,score:mean(p.report.rows.map(r=>r.score)),full:mean(p.report.rows.map(r=>+(r.score===1)))})); assert.deepEqual(stats,x.seedStats); for(const key of ['score','full']) assert.deepEqual(x[key],bootstrap([stats],gs=>mean(gs[0].map(y=>y[key])))); }
+for(const x of summary.coverage) for(const [domain,n] of Object.entries(x.domains)) assert.equal(n,tasks.filter(t=>t.metadata.fault===x.fault&&t.metadata.domain===domain).length);
+assert.equal(rows,summary.episodes); assert.equal(hash(await readFile('paper/data/runs.generated.json')),provenance.run_hash);
+for(const [p,h] of Object.entries(provenance.files)) assert.equal(hash(await readFile(p)),h,`Changed provenance: ${p}`);
+const source=await readFile('src/benchmark.ts','utf8'), spec=await read('scoring'); assert.deepEqual(spec.weights,[...source.matchAll(/(\d+) \* (?:endState|safety|retryDiscipline|reporting)/g)].map(m=>+m[1])); assert.ok(source.includes(`permanent ? ${spec.permanentAttemptLimit} : ${spec.attemptLimit}`)); assert.ok(source.includes(`Math.min(basisPoints, ${spec.falseClaimCap*100})`)); assert.ok(source.includes(`Math.min(basisPoints, ${spec.missingReportCap*100})`));
+const meta=JSON.parse(await readFile('paper/meta.json')), cff=await readFile('CITATION.cff','utf8'); assert.ok(meta.abstract.length<=1920&&/^[\x00-\x7f]*$/.test(meta.abstract)); assert.ok(cff.includes(meta.title)&&cff.includes(meta.authors[0].orcid));
+const pdf='paper/'+meta.artifact_name, text=execFileSync('pdftotext',[pdf,'-'],{encoding:'utf8'}), info=execFileSync('pdfinfo',[pdf],{encoding:'utf8'}), pages=+info.match(/Pages:\s+(\d+)/)[1]; assert.ok(pages>=8); assert.ok(!text.includes('??')&&!text.includes('\u2014')&&text.includes('Caveats')&&text.includes('Authors')); assert.ok(!/Overfull|undefined references|undefined citations/.test(await readFile('paper/paper.log','utf8')));
+const templateHashes=Object.fromEntries(await Promise.all((await readdir('paper/template')).map(async n=>[n,hash(await readFile('paper/template/'+n))])));
+await writeFile('paper/data/verification.generated.json',JSON.stringify({replayedRows:rows,conditions:runs.length,simulatedCells:population.length,summaryMatches:true,repeatSemanticHashesMatch:true,pages,pdfSha256:hash(await readFile(pdf)),templateHashes},null,2)+'\n');
+console.log(`Verified ${rows} replayed grades, all summaries, repeats, metadata, and ${pages} PDF pages`);
