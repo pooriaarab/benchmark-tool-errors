@@ -37,3 +37,4 @@ Publish every planned condition, including nulls. Record changes below before af
 
 ## Deviations
 None at registration.
+2026-10-29: Initial execution aborted on `Unhandled observation: {"status":"complete"}`. Successful tool messages contain the result directly. Correct the controller parser before rerunning the unchanged grid. No completed study output was saved from this attempt; this is an adapter repair, not an exclusion or a hypothesis change.
