@@ -1,5 +1,7 @@
 # benchmark-tool-errors
 
+Paper: [10.5281/zenodo.23752436](https://doi.org/10.5281/zenodo.23752436)
+
 [![npm](https://img.shields.io/npm/v/benchmark-tool-errors)](https://www.npmjs.com/package/benchmark-tool-errors) [![downloads](https://img.shields.io/npm/dm/benchmark-tool-errors)](https://www.npmjs.com/package/benchmark-tool-errors) [![license](https://img.shields.io/npm/l/benchmark-tool-errors)](./LICENSE) [![types](https://img.shields.io/badge/TypeScript-types-3178c6)](#sdk)
 
 [AI Benchmark Index](https://private-repo-337e.com/benchmarks/benchmark-tool-errors) · [npm](https://www.npmjs.com/package/benchmark-tool-errors) · [Grading](https://github.com/pooriaarab/benchmark-tool-errors/blob/main/docs/grading.md) · [Fault catalog](https://github.com/pooriaarab/benchmark-tool-errors/blob/main/docs/fault-catalog.md) · [llms.txt](https://github.com/pooriaarab/benchmark-tool-errors/blob/main/llms.txt)

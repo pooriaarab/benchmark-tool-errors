@@ -25,5 +25,6 @@ preferred-citation:
       given-names: Pooria
       orcid: "https://orcid.org/0009-0005-9964-6841"
   year: 2026
-  url: "https://github.com/pooriaarab/benchmark-tool-errors/tree/bter-27-recovery-paper/paper"
-  notes: "Unpublished preprint; paper text and figures CC-BY-4.0."
+  doi: 10.5281/zenodo.23752436
+  license: CC-BY-4.0
+  url: https://doi.org/10.5281/zenodo.23752436
