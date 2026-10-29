@@ -1,0 +1,12 @@
+{
+  "title": "Tool Errors: Measuring Safe Recovery from Ambiguous API Failures",
+  "authors": [
+    {
+      "name": "Pooria Arab",
+      "affiliation": "Independent researcher",
+      "orcid": "https://orcid.org/0009-0005-9964-6841"
+    }
+  ],
+  "source_commit": "2a5ce8bbaa06b8640893013fd97b952c0c2d75e0",
+  "artifact_name": "tool-errors-paper.pdf"
+}

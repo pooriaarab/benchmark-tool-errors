@@ -4,3 +4,10 @@ artifacts/
 *.tgz
 
 .hidden/
+
+# Rebuilt paper assets
+paper/*.pdf
+paper/*.log
+paper/*.blg
+paper/neurips_2026.sty
+paper/.style.zip
