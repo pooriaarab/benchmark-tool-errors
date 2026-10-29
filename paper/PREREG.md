@@ -38,3 +38,4 @@ Publish every planned condition, including nulls. Record changes below before af
 ## Deviations
 None at registration.
 2026-10-29: Initial execution aborted on `Unhandled observation: {"status":"complete"}`. Successful tool messages contain the result directly. Correct the controller parser before rerunning the unchanged grid. No completed study output was saved from this attempt; this is an adapter repair, not an exclusion or a hypothesis change.
+2026-10-29: The no-report condition exposed mock-script exhaustion (`Mock policy has no scripted turn`). Append a terminal empty response to scripts, so deliberate silence is scored rather than treated as infrastructure failure. Completed reported episodes still stop at their report. Rerun the unchanged grid; no study output was saved from the aborted attempt.
