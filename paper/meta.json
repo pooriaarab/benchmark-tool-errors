@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "title": "Tool Errors: Measuring Safe Recovery from Ambiguous API Failures",
+  "abstract": "An API error does not establish whether an operation took effect. Tool Errors measures safe recovery through stateful fault injection and replay-based scoring. Its 40 public episodes cover 6 fault families across 4 domains. We execute 4960 episodes using scripted controls and a simulated status-read omission sweep. The reference and response-aware controller each reach full credit on 40/40 tasks (95% Wilson interval 91.2-100.0%). Removing reads in a simulated ablation leaves 7/40 full-credit tasks (8.7-31.9%). At simulated read-omission probability 0.5, the mean full-credit fraction is 53.8% (50.6-56.9%, seed bootstrap). These are checks of the evaluation design, not trained-model results. No hosted model, human study, or production deployment is evaluated.",
+  "authors": [
+    {
+      "name": "Pooria Arab",
+      "affiliation": "Independent researcher",
+      "orcid": "https://orcid.org/0009-0005-9964-6841"
+    }
+  ],
+  "license": "CC-BY-4.0",
+  "keywords": [
+    "tool errors",
+    "fault injection",
+    "safe retries",
+    "idempotency",
+    "agent evaluation"
+  ],
+  "code_url": "https://github.com/pooriaarab/benchmark-tool-errors",
+  "artifact_name": "tool-errors-paper.pdf"
+}

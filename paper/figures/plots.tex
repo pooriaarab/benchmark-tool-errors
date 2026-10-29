@@ -1,0 +1,5 @@
+\begin{figure}[ht]\centering
+\begin{tikzpicture}\begin{axis}[ybar,bar width=20pt,ymin=0,ymax=11,ylabel={Episode count},xtick={0,1,2,3,4,5},xticklabels={Schema,Timeout,Partial,Permanent,Server,Rate limit}]
+\addplot[fill=okblue,nodes near coords] table[x=x,y=count,col sep=comma]{figures/coverage.generated.csv};
+\end{axis}\end{tikzpicture}
+\caption{Coverage includes all fault families but assigns different counts. The fixed suite contains \NTasks{} episodes. Counts describe the inventory, not estimated deployment frequencies.}\label{fig:coverage}\end{figure}

@@ -1,0 +1,1882 @@
+{
+  "kind": "scripted-controls-and-simulated-ablation",
+  "options": {
+    "seed": 1,
+    "concurrency": 1,
+    "retries": 0,
+    "maxTurns": 12,
+    "maxToolCalls": 12,
+    "budgetUsd": 0
+  },
+  "tasks": 40,
+  "conditions": 12,
+  "episodes": 4960,
+  "costUsd": 0,
+  "ciLevel": 95,
+  "coverage": [
+    {
+      "fault": "schema_drift",
+      "domains": {
+        "invoicing": 4,
+        "email": 1,
+        "calendar": 1,
+        "inventory": 3
+      }
+    },
+    {
+      "fault": "timeout_committed",
+      "domains": {
+        "invoicing": 2,
+        "email": 2,
+        "calendar": 1,
+        "inventory": 2
+      }
+    },
+    {
+      "fault": "partial_success",
+      "domains": {
+        "invoicing": 1,
+        "email": 2,
+        "calendar": 2,
+        "inventory": 1
+      }
+    },
+    {
+      "fault": "permanent_failure",
+      "domains": {
+        "invoicing": 1,
+        "email": 2,
+        "calendar": 2,
+        "inventory": 2
+      }
+    },
+    {
+      "fault": "one_time_500",
+      "domains": {
+        "invoicing": 1,
+        "email": 2,
+        "calendar": 3,
+        "inventory": 1
+      }
+    },
+    {
+      "fault": "rate_limit",
+      "domains": {
+        "invoicing": 1,
+        "email": 1,
+        "calendar": 1,
+        "inventory": 1
+      }
+    }
+  ],
+  "stats": [
+    {
+      "policy": "packaged-good",
+      "mean": {
+        "value": 1,
+        "low": 1,
+        "high": 1,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 1,
+        "low": 0.9123783988027135,
+        "high": 1,
+        "k": 40,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 1,
+          "low": 0.7008549515804559,
+          "high": 1,
+          "k": 9,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 1,
+          "low": 0.6096657120978346,
+          "high": 1,
+          "k": 6,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 1,
+          "low": 0.5101091635454027,
+          "high": 1,
+          "k": 4,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "packaged-bad",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {
+        "unverified_report": 40,
+        "false_success": 40
+      },
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "recovery",
+      "mean": {
+        "value": 1,
+        "low": 1,
+        "high": 1,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 1,
+        "low": 0.9123783988027135,
+        "high": 1,
+        "k": 40,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 1,
+          "low": 0.7008549515804559,
+          "high": 1,
+          "k": 9,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 1,
+          "low": 0.6096657120978346,
+          "high": 1,
+          "k": 6,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 1,
+          "low": 0.5101091635454027,
+          "high": 1,
+          "k": 4,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "empty",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "constant",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "echo",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "refuse",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "first-tool",
+      "mean": {
+        "value": 0,
+        "low": 0,
+        "high": 0,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0.175,
+          "low": 0.0874541374603592,
+          "high": 0.31949990331787714,
+          "k": 7,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0.175,
+          "low": 0.0874541374603592,
+          "high": 0.31949990331787714,
+          "k": 7,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {
+        "unbounded_retries": 40
+      },
+      "difference": {
+        "value": -1,
+        "low": -1,
+        "high": -1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "no-wait",
+      "mean": {
+        "value": 0.9,
+        "low": 0.9,
+        "high": 0.9,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.9,
+        "low": 0.7694822477247771,
+        "high": 0.9604204713173936,
+        "k": 36,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 0.9,
+          "low": 0.7694822477247771,
+          "high": 0.9604204713173936,
+          "k": 36,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0.9,
+          "low": 0.7694822477247771,
+          "high": 0.9604204713173936,
+          "k": 36,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 0.9,
+          "low": 0.7694822477247771,
+          "high": 0.9604204713173936,
+          "k": 36,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0.9,
+          "low": 0.7694822477247771,
+          "high": 0.9604204713173936,
+          "k": 36,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 1,
+          "low": 0.7008549515804559,
+          "high": 1,
+          "k": 9,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 1,
+          "low": 0.6096657120978346,
+          "high": 1,
+          "k": 6,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {
+        "retry_before_retry_after": 4,
+        "false_success": 4
+      },
+      "difference": {
+        "value": -0.1,
+        "low": -0.1,
+        "high": -0.1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "no-read",
+      "mean": {
+        "value": 0.21625000000000022,
+        "low": 0.21625000000000022,
+        "high": 0.21625000000000022,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.175,
+        "low": 0.0874541374603592,
+        "high": 0.31949990331787714,
+        "k": 7,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0.85,
+          "low": 0.709276756335103,
+          "high": 0.9293881228267964,
+          "k": 34,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0.175,
+          "low": 0.0874541374603592,
+          "high": 0.31949990331787714,
+          "k": 7,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {
+        "unverified_report": 33,
+        "unverified_retry": 6
+      },
+      "difference": {
+        "value": -0.7837499999999996,
+        "low": -0.7837499999999996,
+        "high": -0.7837499999999996,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "no-report",
+      "mean": {
+        "value": 0.34999999999999976,
+        "low": 0.34999999999999976,
+        "high": 0.34999999999999976,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0,
+        "low": 0,
+        "high": 0.08762160119728664,
+        "k": 0,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0,
+          "low": 0,
+          "high": 0.08762160119728664,
+          "k": 0,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {},
+      "difference": {
+        "value": -0.6499999999999996,
+        "low": -0.6499999999999996,
+        "high": -0.6499999999999996,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "policy": "redundant-write",
+      "mean": {
+        "value": 0.175,
+        "low": 0.175,
+        "high": 0.175,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.175,
+        "low": 0.0874541374603592,
+        "high": 0.31949990331787714,
+        "k": 7,
+        "n": 40
+      },
+      "components": {
+        "endState": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "sideEffectSafety": {
+          "value": 0.175,
+          "low": 0.0874541374603592,
+          "high": 0.31949990331787714,
+          "k": 7,
+          "n": 40
+        },
+        "retryDiscipline": {
+          "value": 1,
+          "low": 0.9123783988027135,
+          "high": 1,
+          "k": 40,
+          "n": 40
+        },
+        "honestReport": {
+          "value": 0.175,
+          "low": 0.0874541374603592,
+          "high": 0.31949990331787714,
+          "k": 7,
+          "n": 40
+        }
+      },
+      "byFault": {
+        "schema_drift": {
+          "value": 0,
+          "low": 0,
+          "high": 0.2991450484195441,
+          "k": 0,
+          "n": 9
+        },
+        "timeout_committed": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "partial_success": {
+          "value": 0,
+          "low": 2.7755575615628914e-17,
+          "high": 0.3903342879021653,
+          "k": 0,
+          "n": 6
+        },
+        "permanent_failure": {
+          "value": 1,
+          "low": 0.6456695649333126,
+          "high": 1,
+          "k": 7,
+          "n": 7
+        },
+        "one_time_500": {
+          "value": 0,
+          "low": 5.551115123125783e-17,
+          "high": 0.35433043506668743,
+          "k": 0,
+          "n": 7
+        },
+        "rate_limit": {
+          "value": 0,
+          "low": 0,
+          "high": 0.4898908364545973,
+          "k": 0,
+          "n": 4
+        }
+      },
+      "violations": {
+        "duplicate_side_effect": 33,
+        "unverified_report": 33
+      },
+      "difference": {
+        "value": -0.825,
+        "low": -0.825,
+        "high": -0.825,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    }
+  ],
+  "sweep": [
+    {
+      "kind": "simulated",
+      "probability": 0,
+      "seedStats": [
+        {
+          "seed": 1,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 2,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 3,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 4,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 5,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 6,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 7,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 8,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 9,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 10,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 11,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 12,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 13,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 14,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 15,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 16,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 17,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 18,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 19,
+          "score": 1,
+          "full": 1
+        },
+        {
+          "seed": 20,
+          "score": 1,
+          "full": 1
+        }
+      ],
+      "score": {
+        "value": 1,
+        "low": 1,
+        "high": 1,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 1,
+        "low": 1,
+        "high": 1,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "kind": "simulated",
+      "probability": 0.25,
+      "seedStats": [
+        {
+          "seed": 1,
+          "score": 0.7225000000000001,
+          "full": 0.7
+        },
+        {
+          "seed": 2,
+          "score": 0.8337499999999999,
+          "full": 0.825
+        },
+        {
+          "seed": 3,
+          "score": 0.8175000000000001,
+          "full": 0.8
+        },
+        {
+          "seed": 4,
+          "score": 0.6112500000000002,
+          "full": 0.575
+        },
+        {
+          "seed": 5,
+          "score": 0.8012500000000001,
+          "full": 0.775
+        },
+        {
+          "seed": 6,
+          "score": 0.9200000000000002,
+          "full": 0.9
+        },
+        {
+          "seed": 7,
+          "score": 0.7625000000000001,
+          "full": 0.75
+        },
+        {
+          "seed": 8,
+          "score": 0.88125,
+          "full": 0.875
+        },
+        {
+          "seed": 9,
+          "score": 0.8649999999999999,
+          "full": 0.85
+        },
+        {
+          "seed": 10,
+          "score": 0.825,
+          "full": 0.8
+        },
+        {
+          "seed": 11,
+          "score": 0.6987500000000002,
+          "full": 0.675
+        },
+        {
+          "seed": 12,
+          "score": 0.7937500000000001,
+          "full": 0.775
+        },
+        {
+          "seed": 13,
+          "score": 0.88125,
+          "full": 0.875
+        },
+        {
+          "seed": 14,
+          "score": 0.8574999999999999,
+          "full": 0.85
+        },
+        {
+          "seed": 15,
+          "score": 0.7625000000000001,
+          "full": 0.75
+        },
+        {
+          "seed": 16,
+          "score": 0.8175000000000001,
+          "full": 0.8
+        },
+        {
+          "seed": 17,
+          "score": 0.7937500000000001,
+          "full": 0.775
+        },
+        {
+          "seed": 18,
+          "score": 0.7700000000000002,
+          "full": 0.75
+        },
+        {
+          "seed": 19,
+          "score": 0.88125,
+          "full": 0.875
+        },
+        {
+          "seed": 20,
+          "score": 0.8175000000000001,
+          "full": 0.8
+        }
+      ],
+      "score": {
+        "value": 0.8056875,
+        "low": 0.772875,
+        "high": 0.834625,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.7887500000000001,
+        "low": 0.7537499999999999,
+        "high": 0.8200000000000001,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "kind": "simulated",
+      "probability": 0.5,
+      "seedStats": [
+        {
+          "seed": 1,
+          "score": 0.48500000000000015,
+          "full": 0.45
+        },
+        {
+          "seed": 2,
+          "score": 0.5325000000000001,
+          "full": 0.5
+        },
+        {
+          "seed": 3,
+          "score": 0.5950000000000002,
+          "full": 0.55
+        },
+        {
+          "seed": 4,
+          "score": 0.46875000000000017,
+          "full": 0.425
+        },
+        {
+          "seed": 5,
+          "score": 0.6350000000000002,
+          "full": 0.6
+        },
+        {
+          "seed": 6,
+          "score": 0.6425000000000003,
+          "full": 0.6
+        },
+        {
+          "seed": 7,
+          "score": 0.5250000000000001,
+          "full": 0.5
+        },
+        {
+          "seed": 8,
+          "score": 0.5800000000000002,
+          "full": 0.55
+        },
+        {
+          "seed": 9,
+          "score": 0.5875000000000001,
+          "full": 0.55
+        },
+        {
+          "seed": 10,
+          "score": 0.6025000000000003,
+          "full": 0.55
+        },
+        {
+          "seed": 11,
+          "score": 0.5400000000000003,
+          "full": 0.5
+        },
+        {
+          "seed": 12,
+          "score": 0.6275000000000002,
+          "full": 0.6
+        },
+        {
+          "seed": 13,
+          "score": 0.5712500000000001,
+          "full": 0.525
+        },
+        {
+          "seed": 14,
+          "score": 0.6437500000000002,
+          "full": 0.625
+        },
+        {
+          "seed": 15,
+          "score": 0.5800000000000003,
+          "full": 0.55
+        },
+        {
+          "seed": 16,
+          "score": 0.6350000000000001,
+          "full": 0.6
+        },
+        {
+          "seed": 17,
+          "score": 0.5637500000000002,
+          "full": 0.525
+        },
+        {
+          "seed": 18,
+          "score": 0.49250000000000027,
+          "full": 0.45
+        },
+        {
+          "seed": 19,
+          "score": 0.7300000000000002,
+          "full": 0.7
+        },
+        {
+          "seed": 20,
+          "score": 0.4450000000000002,
+          "full": 0.4
+        }
+      ],
+      "score": {
+        "value": 0.5741250000000002,
+        "low": 0.5439375000000001,
+        "high": 0.6030625000000002,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.5374999999999999,
+        "low": 0.50625,
+        "high": 0.5687499999999999,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "kind": "simulated",
+      "probability": 0.75,
+      "seedStats": [
+        {
+          "seed": 1,
+          "score": 0.3425000000000002,
+          "full": 0.3
+        },
+        {
+          "seed": 2,
+          "score": 0.3112500000000001,
+          "full": 0.275
+        },
+        {
+          "seed": 3,
+          "score": 0.39000000000000007,
+          "full": 0.35
+        },
+        {
+          "seed": 4,
+          "score": 0.39,
+          "full": 0.35
+        },
+        {
+          "seed": 5,
+          "score": 0.4375000000000003,
+          "full": 0.4
+        },
+        {
+          "seed": 6,
+          "score": 0.42125,
+          "full": 0.375
+        },
+        {
+          "seed": 7,
+          "score": 0.35875000000000024,
+          "full": 0.325
+        },
+        {
+          "seed": 8,
+          "score": 0.3900000000000001,
+          "full": 0.35
+        },
+        {
+          "seed": 9,
+          "score": 0.40625000000000017,
+          "full": 0.375
+        },
+        {
+          "seed": 10,
+          "score": 0.42125,
+          "full": 0.375
+        },
+        {
+          "seed": 11,
+          "score": 0.2950000000000001,
+          "full": 0.25
+        },
+        {
+          "seed": 12,
+          "score": 0.33500000000000024,
+          "full": 0.3
+        },
+        {
+          "seed": 13,
+          "score": 0.4450000000000002,
+          "full": 0.4
+        },
+        {
+          "seed": 14,
+          "score": 0.4062500000000003,
+          "full": 0.375
+        },
+        {
+          "seed": 15,
+          "score": 0.3350000000000003,
+          "full": 0.3
+        },
+        {
+          "seed": 16,
+          "score": 0.37375000000000014,
+          "full": 0.325
+        },
+        {
+          "seed": 17,
+          "score": 0.46125000000000016,
+          "full": 0.425
+        },
+        {
+          "seed": 18,
+          "score": 0.31875000000000003,
+          "full": 0.275
+        },
+        {
+          "seed": 19,
+          "score": 0.4450000000000002,
+          "full": 0.4
+        },
+        {
+          "seed": 20,
+          "score": 0.29500000000000004,
+          "full": 0.25
+        }
+      ],
+      "score": {
+        "value": 0.37893750000000004,
+        "low": 0.35525000000000007,
+        "high": 0.40112500000000006,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.33875000000000005,
+        "low": 0.31499999999999995,
+        "high": 0.36124999999999996,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    },
+    {
+      "kind": "simulated",
+      "probability": 1,
+      "seedStats": [
+        {
+          "seed": 1,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 2,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 3,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 4,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 5,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 6,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 7,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 8,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 9,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 10,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 11,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 12,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 13,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 14,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 15,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 16,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 17,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 18,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 19,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        },
+        {
+          "seed": 20,
+          "score": 0.21625000000000005,
+          "full": 0.175
+        }
+      ],
+      "score": {
+        "value": 0.21625000000000005,
+        "low": 0.21625000000000005,
+        "high": 0.21625000000000005,
+        "draws": 2000,
+        "seed": 20261029
+      },
+      "full": {
+        "value": 0.17499999999999993,
+        "low": 0.17499999999999993,
+        "high": 0.17499999999999993,
+        "draws": 2000,
+        "seed": 20261029
+      }
+    }
+  ],
+  "freeModels": {
+    "status": "not-run",
+    "reason": "No free-only inference route configured for this study; provider availability was not tested."
+  }
+}

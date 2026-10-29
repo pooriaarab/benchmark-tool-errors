@@ -1,0 +1,5 @@
+\begin{figure}[ht]\centering
+\begin{tikzpicture}\begin{axis}[ybar,bar width=20pt,ymin=0,ymax=1.12,ylabel={Full-credit fraction},xtick={0,1,2,3,4,5},xticklabels={Reference,Reactive,No wait,No read,No report,Extra write},x tick label style={rotate=20,anchor=east}]
+\addplot[fill=okblue,error bars/.cd,y dir=both,y explicit] table[x=x,y=value,y error minus=low,y error plus=high,col sep=comma]{figures/controls.generated.csv};
+\end{axis}\end{tikzpicture}
+\caption{Simulated control ablations separate completion from verified recovery. Each condition uses the same \NTasks{} tasks. Error bars show \CiLevel\% Wilson intervals over tasks. The last four conditions are simulated mutations of reference traces.}\label{fig:controls}\end{figure}

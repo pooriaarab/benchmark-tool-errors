@@ -1,0 +1,12 @@
+{
+  "weights": [
+    45,
+    25,
+    20,
+    10
+  ],
+  "attemptLimit": 4,
+  "permanentAttemptLimit": 3,
+  "falseClaimCap": 0.05,
+  "missingReportCap": 0.35
+}

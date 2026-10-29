@@ -1,0 +1,15 @@
+{
+  "replayedRows": 4960,
+  "conditions": 12,
+  "simulatedCells": 100,
+  "summaryMatches": true,
+  "repeatSemanticHashesMatch": true,
+  "pages": 10,
+  "pdfSha256": "9a5a32e39926e7624a4c68114ab501acdd6d590d470722ad19f537369a8538b0",
+  "templateHashes": {
+    "build.py": "c4fbe230d6d0c1e008f93471db2273dfce1fa571b33915c23c5c1df3b7a52342",
+    "layout.tex": "8f19d1c9a8c2d83b1736d0e6e0bb5b0957fd00117c356945ea78ddbafac13b53",
+    "reproduce.sh": "ec6ef748d8c14e630525a5991a47fe8111896028b760d3dd39e6ae1a85baed77",
+    "stats.mjs": "05f32655ef8503e62e4f5aa54caacdd7a4f6f3be4920871170de57142da8256f"
+  }
+}
